@@ -408,11 +408,19 @@ bool PageSyncData::PlaySyncPageAct( PDFWriter& rWriter, sal_uInt32& rCurGDIMtfAc
                     else if ( aBeg->eAct == PDFExtOutDevDataSync::EndGroupGfxLink )
                     {
                         Graphic& rGraphic = mGraphics.front();
-                        if ( rGraphic.IsLink() && rGraphic.GetLink().GetType() == GFX_LINK_TYPE_NATIVE_JPG )
+                        if ( rGraphic.IsLink() )
                         {
-                            mbGroupIgnoreGDIMtfActions = rOutDevData.GetIsLosslessCompression() && !rOutDevData.GetIsReduceImageResolution();
-                            if ( !mbGroupIgnoreGDIMtfActions )
+                            GfxLinkType eType = rGraphic.GetLink().GetType();
+                            if ( eType == GFX_LINK_TYPE_NATIVE_JPG  )
+                            {
+                                mbGroupIgnoreGDIMtfActions = rOutDevData.GetIsLosslessCompression() && !rOutDevData.GetIsReduceImageResolution();
+                                if ( !mbGroupIgnoreGDIMtfActions )
+                                    mCurrentGraphic = rGraphic;
+                            }
+                            else if ( eType == GFX_LINK_TYPE_NATIVE_PNG )
+                            {
                                 mCurrentGraphic = rGraphic;
+                            }
                         }
                         break;
                     }
