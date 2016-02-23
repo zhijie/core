@@ -536,7 +536,7 @@ void Scheduler::ProcessEventsToIdle()
 {
     int nSanity = 1000;
 
-    while(ImplYield(false, true, 0))
+    while(ImplYield(false, false, 0))
     {
         if (nSanity-- < 0)
         {
