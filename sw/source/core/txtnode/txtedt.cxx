@@ -1556,6 +1556,10 @@ SwRect SwTextFrame::SmartTagScan( SwContentNode* /*pActNode*/, sal_Int32 /*nActP
     return aRet;
 }
 
+#if 1
+void SwTextFrame::CollectAutoCmplWrds( SwContentNode* , sal_Int32  )
+{}
+#else
 // Wird vom CollectAutoCmplWords gerufen
 void SwTextFrame::CollectAutoCmplWrds( SwContentNode* pActNode, sal_Int32 nActPos )
 {
@@ -1605,7 +1609,7 @@ void SwTextFrame::CollectAutoCmplWrds( SwContentNode* pActNode, sal_Int32 nActPo
     if (!bACWDirty)
         pNode->SetAutoCompleteWordDirty( false );
 }
-
+#endif
 /** Findet den TextFrame und sucht dessen CalcHyph */
 bool SwTextNode::Hyphenate( SwInterHyphInfo &rHyphInf )
 {
