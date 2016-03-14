@@ -236,7 +236,7 @@ bool ImplWinFontEntry::GlyphIsCached(int nGlyphIndex) const
 
 bool ImplWinFontEntry::AddChunkOfGlyphs(bool bRealGlyphIndices, int nGlyphIndex, const WinLayout& rLayout, SalGraphics& rGraphics)
 {
-    const int DEFAULT_CHUNK_SIZE = 20;
+    const int DEFAULT_CHUNK_SIZE = 40;
 
     if (nGlyphIndex == DROPPED_OUTGLYPH)
         return true;
@@ -1443,8 +1443,6 @@ bool SimpleWinLayout::DrawCachedGlyphs(SalGraphics& rGraphics) const
     if (!pImpl)
         return false;
 
-    pImpl->PreDraw();
-
     HFONT hOrigFont = DisableFontScaling();
     Point aPos = GetDrawPosition( Point( mnBaseAdv, 0 ) );
 
@@ -1464,15 +1462,14 @@ bool SimpleWinLayout::DrawCachedGlyphs(SalGraphics& rGraphics) const
                            rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight(),
                            nAdvance + aPos.X() - rChunk.getExtraOffset(), aPos.Y() - rChunk.mnAscent - rChunk.getExtraOffset(),
                            rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight()); // ???
-        pImpl->DrawMask(*rChunk.mpTexture, salColor, a2Rects);
+
+        pImpl->DeferredTextDraw(*rChunk.mpTexture, salColor, a2Rects);
 
         nAdvance += mpGlyphAdvances[i];
     }
 
     if( hOrigFont )
         DeleteFont(SelectFont(hDC, hOrigFont));
-
-    pImpl->PostDraw();
 
     return true;
 }
@@ -2900,8 +2897,6 @@ bool UniscribeLayout::DrawCachedGlyphsUsingTextures(SalGraphics& rGraphics) cons
     if (!pImpl)
         return false;
 
-    pImpl->PreDraw();
-
     // FIXME: This code snippet is mostly copied from the one in
     // UniscribeLayout::DrawTextImpl. Should be factored out.
     int nBaseClusterOffset = 0;
@@ -2960,7 +2955,7 @@ bool UniscribeLayout::DrawCachedGlyphsUsingTextures(SalGraphics& rGraphics) cons
                                    rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight(),
                                    aPos.X(), nAdvance + aPos.Y(),
                                    rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight()); // ???
-                pImpl->DrawMask(*rChunk.mpTexture, salColor, a2Rects);
+                pImpl->DeferredTextDraw(*rChunk.mpTexture, salColor, a2Rects);
             }
             else
             {
@@ -2968,12 +2963,11 @@ bool UniscribeLayout::DrawCachedGlyphsUsingTextures(SalGraphics& rGraphics) cons
                                    rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight(),
                                    nAdvance + aPos.X() + mpGlyphOffsets[i].du - rChunk.getExtraOffset(), aPos.Y() + mpGlyphOffsets[i].dv - rChunk.mnAscent - rChunk.getExtraOffset(),
                                    rChunk.maLocation[n].getWidth(), rChunk.maLocation[n].getHeight()); // ???
-                pImpl->DrawMask(*rChunk.mpTexture, salColor, a2Rects);
+                pImpl->DeferredTextDraw(*rChunk.mpTexture, salColor, a2Rects);
             }
             nAdvance += pGlyphWidths[i];
         }
     }
-    pImpl->PostDraw();
 
     return true;
 }
