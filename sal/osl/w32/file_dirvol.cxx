@@ -1666,7 +1666,7 @@ oslFileError SAL_CALL osl_getFileStatus(
 
     if ( uFieldMask & osl_FileStatus_Mask_FileURL )
     {
-        if ( !pItemImpl->bFullPathNormalized )
+        if ( 0 && !pItemImpl->bFullPathNormalized )
         {
             ::osl::LongPathBuffer< sal_Unicode > aBuffer( MAX_LONG_PATH );
             sal_uInt32 nNewLen = GetCaseCorrectPathName( rtl_uString_getStr( pItemImpl->m_pFullPath ),
