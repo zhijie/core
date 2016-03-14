@@ -15,10 +15,20 @@
 #include "opengl/texture.hxx"
 #include <memory>
 
+struct TextureDrawParameters
+{
+    std::vector<GLfloat> maVertices;
+    std::vector<GLfloat> maTextureCoords;
+    GLint getNumberOfVertices()
+    {
+        return maVertices.size() / 2;
+    }
+};
+
 struct AccumulatedTexturesEntry
 {
     OpenGLTexture maTexture;
-    std::unordered_map<SalColor, std::vector<SalTwoRect>> maColorTwoRectMap;
+    std::unordered_map<SalColor, TextureDrawParameters> maColorTextureDrawParametersMap;
 
     AccumulatedTexturesEntry(const OpenGLTexture& rTexture)
         : maTexture(rTexture)
@@ -26,7 +36,32 @@ struct AccumulatedTexturesEntry
 
     void insert(const SalColor& aColor, const SalTwoRect& r2Rect)
     {
-        maColorTwoRectMap[aColor].push_back(r2Rect);
+        TextureDrawParameters& aDrawParameters = maColorTextureDrawParametersMap[aColor];
+        maTexture.FillCoords<GL_TRIANGLES>(aDrawParameters.maTextureCoords, r2Rect, false);
+
+        GLfloat nX1 = r2Rect.mnDestX;
+        GLfloat nY1 = r2Rect.mnDestY;
+        GLfloat nX2 = r2Rect.mnDestX + r2Rect.mnDestWidth;
+        GLfloat nY2 = r2Rect.mnDestY + r2Rect.mnDestHeight;
+
+        auto& rVertices = aDrawParameters.maVertices;
+        rVertices.push_back(nX1);
+        rVertices.push_back(nY1);
+
+        rVertices.push_back(nX2);
+        rVertices.push_back(nY1);
+
+        rVertices.push_back(nX1);
+        rVertices.push_back(nY2);
+
+        rVertices.push_back(nX1);
+        rVertices.push_back(nY2);
+
+        rVertices.push_back(nX2);
+        rVertices.push_back(nY1);
+
+        rVertices.push_back(nX2);
+        rVertices.push_back(nY2);
     }
 };
 
