@@ -1607,16 +1607,15 @@ void OpenGLSalGraphicsImpl::FlushDeferredDrawing(bool bIsInDraw)
         }
         aUseColor = aColorForTextureMap[rTexture.Id()];
 
-
-
         if (!UseSolid(MAKE_SALCOLOR(aUseColor.GetRed(), aUseColor.GetGreen(), aUseColor.GetBlue())))
             return;
-        for (auto rColorTwoRectPair: rPair.second->maColorTwoRectMap)
+        for (auto rColorTwoRectPair: rPair.second->maColorTextureDrawParametersMap)
         {
-            for (SalTwoRect& rPosAry : rColorTwoRectPair.second)
-            {
-                DrawRect(rPosAry.mnDestX, rPosAry.mnDestY, rPosAry.mnDestWidth, rPosAry.mnDestHeight);
-            }
+            TextureDrawParameters& rParameters = rColorTwoRectPair.second;
+            ApplyProgramMatrices();
+            mpProgram->SetTextureCoord(rParameters.maTextureCoords.data());
+            mpProgram->SetVertices(rParameters.maVertices.data());
+            glDrawArrays(GL_TRIANGLES, 0, rParameters.getNumberOfVertices());
         }
     }
 #endif
@@ -1628,31 +1627,14 @@ void OpenGLSalGraphicsImpl::FlushDeferredDrawing(bool bIsInDraw)
     {
         OpenGLTexture& rTexture = rPair.second->maTexture;
         mpProgram->SetTexture("sampler", rTexture);
-        for (auto& rColorTwoRectPair: rPair.second->maColorTwoRectMap)
+        for (auto& rColorTwoRectPair: rPair.second->maColorTextureDrawParametersMap)
         {
             mpProgram->SetColor("color", rColorTwoRectPair.first, 0);
-            for (SalTwoRect& rPosAry : rColorTwoRectPair.second)
-            {
-                GLfloat pTexCoord[8];
-                rTexture.GetCoord(pTexCoord, rPosAry, false);
-                mpProgram->SetTextureCoord(pTexCoord);
-
-                GLfloat nX1 = rPosAry.mnDestX;
-                GLfloat nY1 = rPosAry.mnDestY;
-                GLfloat nX2 = rPosAry.mnDestX + rPosAry.mnDestWidth;
-                GLfloat nY2 = rPosAry.mnDestY + rPosAry.mnDestHeight;
-
-                GLfloat pVertices[] =
-                {
-                    nX1, nY2,
-                    nX1, nY1,
-                    nX2, nY1,
-                    nX2, nY2
-                };
-                ApplyProgramMatrices();
-                mpProgram->SetVertices(pVertices);
-                glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-            }
+            TextureDrawParameters& rParameters = rColorTwoRectPair.second;
+            ApplyProgramMatrices();
+            mpProgram->SetTextureCoord(rParameters.maTextureCoords.data());
+            mpProgram->SetVertices(rParameters.maVertices.data());
+            glDrawArrays(GL_TRIANGLES, 0, rParameters.getNumberOfVertices());
         }
     }
     mpProgram->Clean();
