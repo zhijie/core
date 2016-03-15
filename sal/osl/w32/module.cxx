@@ -29,6 +29,8 @@
 #include <osl/file.h>
 #include <vector>
 
+#include <unordered_map>
+
 /*
     under WIN32, we use the void* oslModule
     as a WIN32 HANDLE (which is also a 32-bit value)
@@ -37,6 +39,16 @@
 /*****************************************************************************/
 /* osl_loadModule */
 /*****************************************************************************/
+
+
+typedef std::unordered_map<
+        rtl::OUString, oslModule,
+        rtl::OUStringHash, std::equal_to< rtl::OUString > > ModuleMapper;
+typedef std::pair< const OUString, const oslModule > ModuleValueType;
+
+
+static ModuleMapper modules;
+
 oslModule SAL_CALL osl_loadModule(rtl_uString *strModuleName, sal_Int32 /*nRtldMode*/ )
 {
     HMODULE h;
@@ -47,8 +59,13 @@ oslModule SAL_CALL osl_loadModule(rtl_uString *strModuleName, sal_Int32 /*nRtldM
     oslModule ret = 0;
     oslFileError    nError;
 
+    OUString modname ((sal_Unicode*)strModuleName->buffer, wcslen(strModuleName->buffer));
     SAL_INFO( "sal.osl", "osl_loadModule: " << OUString((sal_Unicode*)strModuleName->buffer, wcslen(strModuleName->buffer)) );
     OSL_ASSERT(strModuleName);
+
+    ModuleMapper::const_iterator iter = modules.find(modname);
+    if (iter != modules.end())
+        return iter->second;
 
     nError = osl_getSystemPathFromFileURL(strModuleName, &Module);
 
@@ -60,7 +77,6 @@ oslModule SAL_CALL osl_loadModule(rtl_uString *strModuleName, sal_Int32 /*nRtldM
     if (h == NULL)
         h = LoadLibraryExW(reinterpret_cast<LPCWSTR>(Module->buffer), NULL,
                                   LOAD_WITH_ALTERED_SEARCH_PATH);
-
     //In case of long path names (\\?\c:\...) try to shorten the filename.
     //LoadLibrary cannot handle file names which exceed 260 letters.
     //In case the path is to long, the function will fail. However, the error
@@ -87,6 +103,7 @@ oslModule SAL_CALL osl_loadModule(rtl_uString *strModuleName, sal_Int32 /*nRtldM
     SetErrorMode(errorMode);
 #endif
 
+    modules.insert(ModuleValueType(modname, ret));
     return ret;
 }
 
@@ -144,6 +161,11 @@ osl_getModuleHandle(rtl_uString *pModuleName, oslModule *pResult)
 /*****************************************************************************/
 void SAL_CALL osl_unloadModule(oslModule Module)
 {
+    for(ModuleMapper::const_iterator iter = modules.begin(); iter != modules.end(); ++iter)
+        if (iter->second == Module) {
+            modules.erase(iter);
+            break;
+        }
     FreeLibrary((HMODULE)Module);
 }
 
