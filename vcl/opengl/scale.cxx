@@ -208,11 +208,40 @@ bool OpenGLSalBitmap::ImplScaleArea( const rtl::Reference< OpenGLContext > &xCon
     bool fast = ( ixscale == int( ixscale ) && iyscale == int( iyscale )
         && int( nNewWidth * ixscale ) == mnWidth && int( nNewHeight * iyscale ) == mnHeight );
 
+    bool bTwoPasses = false;
+
     // The generic case has arrays only up to 100 ratio downscaling, which is hopefully enough
     // in practice, but protect against buffer overflows in case such an extreme case happens
     // (and in such case the precision of the generic algorithm probably doesn't matter anyway).
     if( ixscale > 100 || iyscale > 100 )
+    {
         fast = true;
+    }
+    else
+    {
+        if (ixscale > 16)
+        {
+            ixscale = 16;
+            nNewWidth = int(mnWidth / ixscale);
+            rScaleX *= ixscale; // second pass x-scale factor
+            bTwoPasses = true;
+        }
+        else
+        {
+            rScaleX = 1;
+        }
+        if (iyscale > 16)
+        {
+            iyscale = 16;
+            nNewHeight = int(mnHeight / iyscale);
+            rScaleY *= iyscale; // second pass y-scale factor
+            bTwoPasses = true;
+        }
+        else
+        {
+            rScaleY = 1;
+        }
+    }
 
     // TODO Make sure the framebuffer is alright
 
@@ -251,13 +280,58 @@ bool OpenGLSalBitmap::ImplScaleArea( const rtl::Reference< OpenGLContext > &xCon
     pProgram->DrawTexture( maTexture );
     pProgram->Clean();
 
-    maTexture = aScratchTex;
-    OpenGLContext::ReleaseFramebuffer( pFramebuffer );
-
-    mnWidth = nNewWidth;
-    mnHeight = nNewHeight;
+    OpenGLContext::ReleaseFramebuffer(pFramebuffer);
 
     CHECK_GL_ERROR();
+
+    if (bTwoPasses)
+    {
+        mnWidth = nNewWidth;
+        mnHeight = nNewHeight;
+
+        nNewWidth = int(mnWidth * rScaleX);
+        nNewHeight = int (mnHeight * rScaleY);
+
+        ixscale = 1 / rScaleX;
+        iyscale = 1 / rScaleY;
+
+        pProgram = xContext->UseProgram("textureVertexShader", OUString("areaScaleFragmentShader"));
+        if (pProgram == nullptr)
+            return false;
+
+        OpenGLTexture aScratchTex2(nNewWidth, nNewHeight);
+
+        pFramebuffer = xContext->AcquireFramebuffer(aScratchTex2);
+
+        pProgram->SetUniform1f("xscale", ixscale);
+        pProgram->SetUniform1f("yscale", iyscale);
+        pProgram->SetUniform1i("swidth", mnWidth);
+        pProgram->SetUniform1i("sheight", mnHeight);
+        // For converting between <0,mnWidth-1> and <0.0,1.0> coordinate systems.
+        pProgram->SetUniform1f("xsrcconvert", 1.0 / (mnWidth - 1));
+        pProgram->SetUniform1f("ysrcconvert", 1.0 / (mnHeight - 1));
+        pProgram->SetUniform1f("xdestconvert", 1.0 * (nNewWidth - 1));
+        pProgram->SetUniform1f("ydestconvert", 1.0 * (nNewHeight - 1));
+
+        pProgram->SetTexture("sampler", aScratchTex);
+        pProgram->DrawTexture(aScratchTex);
+        pProgram->Clean();
+
+        OpenGLContext::ReleaseFramebuffer(pFramebuffer);
+
+        CHECK_GL_ERROR();
+
+        maTexture = aScratchTex2;
+        mnWidth = nNewWidth;
+        mnHeight = nNewHeight;
+    }
+    else
+    {
+        maTexture = aScratchTex;
+        mnWidth = nNewWidth;
+        mnHeight = nNewHeight;
+    }
+
     return true;
 }
 
