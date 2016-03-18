@@ -219,15 +219,27 @@ bool OpenGLSalBitmap::ImplScaleArea( const rtl::Reference< OpenGLContext > &xCon
     }
     else
     {
-        if ( ixscale > 16 || iyscale > 16 )
+        if (ixscale > 16)
         {
-            ixscale = std::floor(std::sqrt(ixscale));
-            iyscale = std::floor(std::sqrt(iyscale));
+            ixscale = 16;
             nNewWidth = int(mnWidth / ixscale);
             rScaleX *= ixscale; // second pass x-scale factor
+            bTwoPasses = true;
+        }
+        else
+        {
+            rScaleX = 1;
+        }
+        if (iyscale > 16)
+        {
+            iyscale = 16;
             nNewHeight = int(mnHeight / iyscale);
             rScaleY *= iyscale; // second pass y-scale factor
             bTwoPasses = true;
+        }
+        else
+        {
+            rScaleY = 1;
         }
     }
 
