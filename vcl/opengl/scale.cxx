@@ -343,6 +343,11 @@ bool OpenGLSalBitmap::ImplScale( const double& rScaleX, const double& rScaleY, B
     OpenGLVCLContextZone aContextZone;
     rtl::Reference<OpenGLContext> xContext = OpenGLContext::getVCLContext();
 
+    if (rScaleX <= 1 && rScaleY <= 1)
+    {
+        nScaleFlag = BmpScaleFlag::BestQuality;
+    }
+
     if( nScaleFlag == BmpScaleFlag::Fast )
     {
         return ImplScaleFilter( xContext, rScaleX, rScaleY, GL_NEAREST );
