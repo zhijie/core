@@ -174,7 +174,8 @@ bool Scheduler::ProcessTaskScheduling( bool bTimerOnly )
         return false;
 }
 
-sal_uInt64 Scheduler::CalculateMinimumTimeout( bool &bHasActiveIdles )
+sal_uInt64 Scheduler::CalculateMinimumTimeout( bool &bHasActiveIdles,
+                                               bool  bIgnoreLowPriority )
 {
     // process all pending Tasks
     // if bTimer True, only handle timer
@@ -203,7 +204,8 @@ sal_uInt64 Scheduler::CalculateMinimumTimeout( bool &bHasActiveIdles )
             pNext = pSchedulerData->mpNext;
             delete pSchedulerData;
         }
-        else
+        else if (!bIgnoreLowPriority ||
+                 pSchedulerData->mpScheduler->mePriority >= SchedulerPriority::DEFAULT_IDLE)
         {
             if (!pSchedulerData->mbInScheduler)
             {

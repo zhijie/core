@@ -473,7 +473,7 @@ void Application::Execute()
     pSVData->maAppData.mbInAppExecute = false;
 }
 
-inline bool ImplYield(bool i_bWait, bool i_bAllEvents, sal_uLong const nReleased)
+inline bool ImplYield(bool i_bWait, bool i_bAllEvents, sal_uLong const nReleased, bool bIgnoreLowPrio = false)
 {
     ImplSVData* pSVData = ImplGetSVData();
 
@@ -483,7 +483,7 @@ inline bool ImplYield(bool i_bWait, bool i_bAllEvents, sal_uLong const nReleased
     bool bHasActiveIdles = false;
     sal_uInt64 nMinTimeout = 0;
     if (nReleased == 0) // else thread doesn't have SolarMutex so avoid race
-        nMinTimeout = Scheduler::CalculateMinimumTimeout(bHasActiveIdles);
+        nMinTimeout = Scheduler::CalculateMinimumTimeout(bHasActiveIdles, bIgnoreLowPrio);
 
     // FIXME: should use returned value as param to DoYield
     (void)nMinTimeout;
@@ -535,7 +535,7 @@ void Application::Reschedule( bool i_bAllEvents )
 void Scheduler::ProcessEventsToIdle()
 {
     int nSanity = 100;
-    while(ImplYield(false, true, 0))
+    while(ImplYield(false, true, 0, true))
     {
         if (nSanity-- < 0)
         {

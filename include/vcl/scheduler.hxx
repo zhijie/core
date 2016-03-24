@@ -93,7 +93,8 @@ public:
     // Process one pending Timer with highhest priority
     static void CallbackTaskScheduling( bool ignore );
     /// Calculate minimum timeout - and return its value.
-    static sal_uInt64 CalculateMinimumTimeout( bool &bHasActiveIdles );
+    static sal_uInt64 CalculateMinimumTimeout( bool &bHasActiveIdles,
+                                               bool  bIgnoreLowPriority = false );
     /// Process one pending task ahead of time with highest priority.
     static bool       ProcessTaskScheduling( bool bTimerOnly );
     /// Process all events until we are idle
