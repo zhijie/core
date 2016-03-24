@@ -31,7 +31,7 @@
 
 #include <svx/svdpagv.hxx>
 #include <vcl/svapp.hxx>
-#include <vcl/timer.hxx>
+#include <vcl/idle.hxx>
 
 #include <functional>
 
@@ -91,8 +91,8 @@ private:
     */
     ::osl::Mutex maMutex;
 
-    Timer  maTimer;
-    DECL_LINK_TYPED(ProcessRequestHdl, Timer *, void);
+    Idle maTimer;
+    DECL_LINK_TYPED(ProcessRequestHdl, Idle *, void);
     sal_uInt32 mnTimeBetweenHighPriorityRequests;
     sal_uInt32 mnTimeBetweenLowPriorityRequests;
     sal_uInt32 mnTimeBetweenRequestsWhenNotIdle;

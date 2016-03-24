@@ -58,8 +58,8 @@ QueueProcessor::QueueProcessor (
     if (aTimeBetweenReqeusts.has<sal_Int32>())
         aTimeBetweenReqeusts >>= mnTimeBetweenRequestsWhenNotIdle;
 
-    maTimer.SetTimeoutHdl (LINK(this,QueueProcessor,ProcessRequestHdl));
-    maTimer.SetTimeout (10);
+    maTimer.SetIdleHdl (LINK(this,QueueProcessor,ProcessRequestHdl));
+    maTimer.SetPriority( SchedulerPriority::LOW );
 }
 
 QueueProcessor::~QueueProcessor()
@@ -73,9 +73,9 @@ void QueueProcessor::Start (int nPriorityClass)
     if ( ! maTimer.IsActive())
     {
         if (nPriorityClass == 0)
-            maTimer.SetTimeout (10);
+            maTimer.SetPriority( SchedulerPriority::LOW );
         else
-            maTimer.SetTimeout (100);
+            maTimer.SetPriority( SchedulerPriority::LOW );
         maTimer.Start();
     }
 }
@@ -106,7 +106,7 @@ void QueueProcessor::SetPreviewSize (
     mbDoSuperSampling = bDoSuperSampling;
 }
 
-IMPL_LINK_NOARG_TYPED(QueueProcessor, ProcessRequestHdl, Timer *, void)
+IMPL_LINK_NOARG_TYPED(QueueProcessor, ProcessRequestHdl, Idle *, void)
 {
     ProcessRequests();
 }
