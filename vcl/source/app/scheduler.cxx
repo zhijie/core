@@ -205,7 +205,7 @@ sal_uInt64 Scheduler::CalculateMinimumTimeout( bool &bHasActiveIdles,
             delete pSchedulerData;
         }
         else if (!bIgnoreLowPriority ||
-                 pSchedulerData->mpScheduler->mePriority >= SchedulerPriority::DEFAULT_IDLE)
+                 pSchedulerData->mpScheduler->mePriority >= SchedulerPriority::LOW)
         {
             if (!pSchedulerData->mbInScheduler)
             {
