@@ -1569,7 +1569,7 @@ void OpenGLSalGraphicsImpl::DrawMask( OpenGLTexture& rMask, SalColor nMaskColor,
     mpProgram->Clean();
 }
 
-void OpenGLSalGraphicsImpl::DeferredTextDraw(const OpenGLTexture& rTexture, SalColor aMaskColor, const SalTwoRect& rPosAry)
+void OpenGLSalGraphicsImpl::DeferredTextDraw(OpenGLTexture& rTexture, SalColor aMaskColor, const SalTwoRect& rPosAry)
 {
     mpAccumulatedTextures->insert(rTexture, aMaskColor, rPosAry);
 }
@@ -1581,6 +1581,8 @@ void OpenGLSalGraphicsImpl::FlushDeferredDrawing(bool bIsInDraw)
 
     if (!bIsInDraw)
         PreDraw();
+
+    VCL_GL_INFO("FlushDeferredDrawing");
 
     OpenGLZone aZone;
 
