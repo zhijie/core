@@ -2678,10 +2678,12 @@ bool UniscribeLayout::CacheGlyphs(SalGraphics& rGraphics) const
     {
         for (int i = 0; i < mnGlyphCount; i++)
         {
-            if (mrWinFontEntry.GlyphIsCached(mpOutGlyphs[i]))
+            int nCodePoint = mpOutGlyphs[i];
+
+            if (mrWinFontEntry.GetGlyphCache().IsGlyphCached(nCodePoint))
                 continue;
 
-            if (!mrWinFontEntry.AddChunkOfGlyphs(true, mpOutGlyphs[i], *this, rGraphics))
+            if (!mrWinFontEntry.CacheGlyphToAtlas(true, nCodePoint, *this, rGraphics))
                 return false;
         }
     }
