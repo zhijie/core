@@ -8,34 +8,29 @@
  *
  */
 
-#ifndef INCLUDED_VCL_INC_OPENGL_FIXEDTEXTUREATLAS_HXX
-#define INCLUDED_VCL_INC_OPENGL_FIXEDTEXTUREATLAS_HXX
+#ifndef INCLUDED_VCL_INC_OPENGL_PACKEDTEXTUREATLAS_HXX
+#define INCLUDED_VCL_INC_OPENGL_PACKEDTEXTUREATLAS_HXX
 
 #include "opengl/texture.hxx"
 
+struct PackedTexture;
 
-class VCL_PLUGIN_PUBLIC FixedTextureAtlasManager
+class VCL_PLUGIN_PUBLIC PackedTextureAtlasManager
 {
-    std::vector<ImplOpenGLTexture *> mpTextures;
+    std::vector<std::unique_ptr<PackedTexture>> maPackedTextures;
 
-    int mWidthFactor;
-    int mHeightFactor;
-    int mSubTextureSize;
+    int mnTextureWidth;
+    int mnTextureHeight;
 
     void CreateNewTexture();
 
 public:
-    FixedTextureAtlasManager(int nWidthFactor, int nHeightFactor, int nTextureSize);
-    ~FixedTextureAtlasManager();
+    PackedTextureAtlasManager(int nTextureWidth, int nTextureHeight);
+    ~PackedTextureAtlasManager();
     OpenGLTexture InsertBuffer(int nWidth, int nHeight, int nFormat, int nType, sal_uInt8* pData);
     OpenGLTexture Reserve(int nWidth, int nHeight);
-
-    int GetSubtextureSize()
-    {
-        return mSubTextureSize;
-    }
 };
 
-#endif // INCLUDED_VCL_INC_OPENGL_FIXEDTEXTUREATLAS_HXX
+#endif // INCLUDED_VCL_INC_OPENGL_PACKEDTEXTUREATLAS_HXX
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */
