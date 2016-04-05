@@ -20,16 +20,6 @@
 #include <vcl/idle.hxx>
 #include "saltimer.hxx"
 
-void Idle::SetDeletionFlags()
-{
-    // If no AutoIdle, then stop.
-    if ( !mbAuto )
-    {
-        mpSchedulerData->mbDelete = true;
-        mbActive = false;
-    }
-}
-
 void Idle::Invoke()
 {
     maIdleHdl.Call( this );
@@ -44,13 +34,11 @@ Idle& Idle::operator=( const Idle& rIdle )
 
 Idle::Idle( const sal_Char *pDebugName ) : Scheduler( pDebugName )
 {
-    mbAuto = false;
 }
 
 Idle::Idle( const Idle& rIdle ) : Scheduler(rIdle)
 {
     maIdleHdl = rIdle.maIdleHdl;
-    mbAuto = rIdle.mbAuto;
 }
 
 void Idle::Start()
@@ -86,22 +74,6 @@ sal_uInt64 Idle::UpdateMinPeriod( sal_uInt64 nMinPeriod, sal_uInt64 /* nTime */ 
         break;
     }
     return nMinPeriod;
-}
-
-AutoIdle::AutoIdle()
-{
-    mbAuto = true;
-}
-
-AutoIdle::AutoIdle( const AutoIdle& rIdle ) : Idle( rIdle )
-{
-    mbAuto = true;
-}
-
-AutoIdle& AutoIdle::operator=( const AutoIdle& rIdle )
-{
-    Idle::operator=( rIdle );
-    return *this;
 }
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

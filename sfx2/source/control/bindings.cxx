@@ -71,11 +71,11 @@ using namespace ::com::sun::star;
 using namespace ::com::sun::star::uno;
 using namespace ::com::sun::star::util;
 
-//static sal_uInt16 nTimeOut = 300;
+static sal_uInt16 nTimeOut = 300;
 
-//#define TIMEOUT_FIRST       nTimeOut
-//#define TIMEOUT_UPDATING     20
-//#define TIMEOUT_IDLE       2500
+#define TIMEOUT_FIRST       nTimeOut
+#define TIMEOUT_UPDATING     20
+#define TIMEOUT_IDLE       2500
 
 typedef std::unordered_map< sal_uInt16, bool > InvalidateSlotMap;
 
@@ -218,7 +218,7 @@ public:
     bool                    bAllMsgDirty;   //  Has a MessageServer been invalidated?
     bool                    bAllDirty;      // After InvalidateAll
     bool                    bCtrlReleased;  // while EnterRegistrations
-    AutoIdle                aTimer;         // for volatile Slots
+    AutoTimer               aTimer;         // for volatile Slots
     bool                    bInUpdate;      // for Assertions
     bool                    bInNextJob;     // for Assertions
     bool                    bFirstRound;    // First round in Update
@@ -253,7 +253,7 @@ SfxBindings::SfxBindings()
     // all caches are valid (no pending invalidate-job)
     // create the list of caches
     pImp->pCaches = new SfxStateCacheArr_Impl;
-    pImp->aTimer.SetIdleHdl( LINK(this, SfxBindings, NextJob) );
+    pImp->aTimer.SetTimeoutHdl( LINK(this, SfxBindings, NextJob) );
 }
 
 
@@ -708,8 +708,7 @@ void SfxBindings::InvalidateAll
     if ( !nRegLevel )
     {
         pImp->aTimer.Stop();
-        //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-        pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+        pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
         pImp->aTimer.Start();
     }
 }
@@ -761,8 +760,7 @@ void SfxBindings::Invalidate
     if ( !nRegLevel )
     {
         pImp->aTimer.Stop();
-        //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-        pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+        pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
         pImp->aTimer.Start();
     }
 }
@@ -816,8 +814,7 @@ void SfxBindings::InvalidateShell
         if ( !nRegLevel )
         {
             pImp->aTimer.Stop();
-            //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-            pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+            pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
             pImp->aTimer.Start();
             pImp->bFirstRound = true;
             pImp->nFirstShell = nLevel;
@@ -854,8 +851,7 @@ void SfxBindings::Invalidate
         if ( !nRegLevel )
         {
             pImp->aTimer.Stop();
-            //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-            pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+            pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
             pImp->aTimer.Start();
         }
     }
@@ -892,8 +888,7 @@ void SfxBindings::Invalidate
         if ( !nRegLevel )
         {
             pImp->aTimer.Stop();
-            //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-            pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+            pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
             pImp->aTimer.Start();
         }
     }
@@ -1552,12 +1547,12 @@ void SfxBindings::UpdateControllers_Impl
     }
 }
 
-IMPL_LINK_TYPED( SfxBindings, NextJob, Idle *, pTimer, void )
+IMPL_LINK_TYPED( SfxBindings, NextJob, Timer *, pTimer, void )
 {
     NextJob_Impl(pTimer);
 }
 
-bool SfxBindings::NextJob_Impl(Idle * pTimer)
+bool SfxBindings::NextJob_Impl(Timer * pTimer)
 {
 #ifdef DBG_UTIL
     // on Windows very often C++ Exceptions (GPF etc.) are caught by MSVCRT
@@ -1571,8 +1566,7 @@ bool SfxBindings::NextJob_Impl(Idle * pTimer)
 
     if ( Application::GetLastInputInterval() < MAX_INPUT_DELAY && pTimer )
     {
-        //pImp->aTimer.SetTimeout(TIMEOUT_UPDATING);
-        pImp->aTimer.SetPriority( SchedulerPriority::LOW );
+        pImp->aTimer.SetTimeout(TIMEOUT_UPDATING);
         return true;
     }
 
@@ -1600,10 +1594,9 @@ bool SfxBindings::NextJob_Impl(Idle * pTimer)
     }
 
     pImp->bAllDirty = false;
-    //pImp->aTimer.SetTimeout(TIMEOUT_UPDATING);
-    pImp->aTimer.SetPriority( SchedulerPriority::LOW );
+    pImp->aTimer.SetTimeout(TIMEOUT_UPDATING);
 
-    // at least .0 loops and further if more jobs are available but no input
+    // at least 10 loops and further if more jobs are available but no input
     bool bPreEmptive = pTimer && !pSfxApp->Get_Impl()->nInReschedule;
     sal_uInt16 nLoops = 10;
     pImp->bInNextJob = true;
@@ -1663,8 +1656,7 @@ bool SfxBindings::NextJob_Impl(Idle * pTimer)
     }
 
     if (bVolatileSlotsPresent)
-        //pImp->aTimer.SetTimeout(TIMEOUT_IDLE);
-        pImp->aTimer.SetPriority( SchedulerPriority::LOWEST );
+        pImp->aTimer.SetTimeout(TIMEOUT_IDLE);
     else
         pImp->aTimer.Stop();
 
@@ -1782,8 +1774,7 @@ void SfxBindings::LeaveRegistrations( sal_uInt16 nLevel, const char *pFile, int 
         if ( pImp->pCaches && !pImp->pCaches->empty() )
         {
             pImp->aTimer.Stop();
-            //pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
-            pImp->aTimer.SetPriority( SchedulerPriority::LOWER );
+            pImp->aTimer.SetTimeout(TIMEOUT_FIRST);
             pImp->aTimer.Start();
         }
     }

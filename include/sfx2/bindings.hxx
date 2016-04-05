@@ -44,7 +44,7 @@ class SfxItemSet;
 class SfxDispatcher;
 class SfxBindings;
 class SfxBindings_Impl;
-class Idle;
+class Timer;
 class SfxWorkWindow;
 class SfxUnoControllerItem;
 struct SfxFoundCache_Impl;
@@ -131,8 +131,8 @@ private:
                             const SfxPoolItem *pItem,
                             SfxItemState eItemState );
     SAL_DLLPRIVATE SfxStateCache* GetStateCache( sal_uInt16 nId, sal_uInt16 *pPos);
-    DECL_DLLPRIVATE_LINK_TYPED( NextJob, Idle *, void );
-    SAL_DLLPRIVATE bool NextJob_Impl(Idle * pTimer);
+    DECL_DLLPRIVATE_LINK_TYPED( NextJob, Timer *, void );
+    SAL_DLLPRIVATE bool NextJob_Impl(Timer * pTimer);
 
 public:
                      SfxBindings();

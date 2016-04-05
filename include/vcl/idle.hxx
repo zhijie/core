@@ -27,7 +27,6 @@ class VCL_DLLPUBLIC Idle : public Scheduler
 {
 protected:
     Link<Idle *, void> maIdleHdl;          // Callback Link
-    bool mbAuto;
 
 public:
     Idle( const sal_Char *pDebugName = nullptr );
@@ -40,22 +39,10 @@ public:
     void            SetIdleHdl( const Link<Idle *, void>& rLink ) { maIdleHdl = rLink; }
     const Link<Idle *, void>& GetIdleHdl() const { return maIdleHdl; }
     virtual void Invoke() override;
-    virtual void SetDeletionFlags() override;
     virtual bool ReadyForSchedule( bool bTimerOnly, sal_uInt64 nTimeNow ) const override;
     virtual bool IsIdle() const override;
     virtual sal_uInt64 UpdateMinPeriod( sal_uInt64 nMinPeriod, sal_uInt64 nTime ) const override;
     Idle&           operator=( const Idle& rIdle );
-};
-
-/// An auto-timer is a multi-shot timer re-emitting itself at
-/// interval until destroyed.
-class VCL_DLLPUBLIC AutoIdle : public Idle
-{
-public:
-                    AutoIdle();
-                    AutoIdle( const AutoIdle& rIdle );
-
-    AutoIdle&      operator=( const AutoIdle& rIdle );
 };
 
 #endif // INCLUDED_VCL_IDLE_HXX
