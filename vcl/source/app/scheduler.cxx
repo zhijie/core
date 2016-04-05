@@ -157,12 +157,14 @@ void Scheduler::CallbackTaskScheduling(bool ignore)
     Scheduler::ProcessTaskScheduling( false );
 }
 
-bool Scheduler::ProcessTaskScheduling( bool bTimerOnly )
+bool Scheduler::ProcessTaskScheduling( bool bTimerOnly, bool bEnableDisabledScheduler )
 {
     ImplSchedulerData* pSchedulerData;
 
     // tdf#91727 - NB. bTimerOnly is ultimately not used
-    if ((pSchedulerData = ImplSchedulerData::GetMostImportantTask(bTimerOnly)))
+    static bool bDisabledScheduler = !!getenv("SAL_DISABLE_SCHEDULER");
+
+    if ((!bDisabledScheduler || bEnableDisabledScheduler) && (pSchedulerData = ImplSchedulerData::GetMostImportantTask(bTimerOnly)))
     {
         SAL_INFO("vcl.schedule", "Invoke task " << pSchedulerData->GetDebugName());
 

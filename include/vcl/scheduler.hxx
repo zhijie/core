@@ -96,7 +96,8 @@ public:
     static sal_uInt64 CalculateMinimumTimeout( bool &bHasActiveIdles,
                                                bool  bIgnoreLowPriority = false );
     /// Process one pending task ahead of time with highest priority.
-    static bool       ProcessTaskScheduling( bool bTimerOnly );
+    static bool       ProcessTaskScheduling( bool bTimerOnly, bool bEnableDisabledScheduler = false );
+
     /// Process all events until we are idle
     static void       ProcessEventsToIdle();
 };
