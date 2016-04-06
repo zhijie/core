@@ -30,6 +30,15 @@
 #include "opengl/texture.hxx"
 #include "opengl/zone.hxx"
 
+namespace
+{
+#ifdef WNT
+const GLenum constDefaultBackendFormat = GL_RGBA;
+#else
+const GLenum constDefaultBackendFormat = GL_BGRA;
+#endif
+} // end anonymous namespace
+
 // texture with allocated size
 ImplOpenGLTexture::ImplOpenGLTexture( int nWidth, int nHeight, bool bAllocate ) :
     mnRefCount( 1 ),
@@ -55,7 +64,7 @@ ImplOpenGLTexture::ImplOpenGLTexture( int nWidth, int nHeight, bool bAllocate ) 
     CHECK_GL_ERROR();
     if( bAllocate )
     {
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+        glTexImage2D( GL_TEXTURE_2D, 0, constDefaultBackendFormat, nWidth, nHeight, 0, constDefaultBackendFormat, GL_UNSIGNED_BYTE, nullptr );
         CHECK_GL_ERROR();
     }
     glBindTexture( GL_TEXTURE_2D, 0 );
@@ -91,7 +100,7 @@ ImplOpenGLTexture::ImplOpenGLTexture( int nX, int nY, int nWidth, int nHeight ) 
     CHECK_GL_ERROR();
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     CHECK_GL_ERROR();
-    glCopyTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, nX, nY, nWidth, nHeight, 0 );
+    glCopyTexImage2D( GL_TEXTURE_2D, 0, constDefaultBackendFormat, nX, nY, nWidth, nHeight, 0 );
     CHECK_GL_ERROR();
     glBindTexture( GL_TEXTURE_2D, 0 );
     CHECK_GL_ERROR();
@@ -128,7 +137,7 @@ ImplOpenGLTexture::ImplOpenGLTexture( int nWidth, int nHeight, int nFormat, int 
     CHECK_GL_ERROR();
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     CHECK_GL_ERROR();
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, mnWidth, mnHeight, 0, nFormat, nType, pData );
+    glTexImage2D( GL_TEXTURE_2D, 0, constDefaultBackendFormat, mnWidth, mnHeight, 0, nFormat, nType, pData );
     CHECK_GL_ERROR();
     glBindTexture( GL_TEXTURE_2D, 0 );
     CHECK_GL_ERROR();
