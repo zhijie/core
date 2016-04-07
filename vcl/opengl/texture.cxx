@@ -33,9 +33,9 @@
 namespace
 {
 #ifdef WNT
-const GLenum constDefaultBackendFormat = GL_BGRA;
-#else
 const GLenum constDefaultBackendFormat = GL_RGBA;
+#else
+const GLenum constDefaultBackendFormat = GL_BGRA;
 #endif
 } // end anonymous namespace
 
