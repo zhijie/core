@@ -735,6 +735,10 @@ LRESULT CALLBACK SalComWndProc( HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lPar
             ImplSalStartTimer( (sal_uLong) lParam, FALSE );
             rDef = FALSE;
             break;
+        case SAL_MSG_STOPTIMER:
+            ImplSalStopTimer();
+            rDef = FALSE;
+            break;
         case SAL_MSG_CREATEFRAME:
             nRet = (LRESULT)ImplSalCreateFrame( GetSalData()->mpFirstInstance, (HWND)lParam, (SalFrameStyleFlags)wParam );
             rDef = FALSE;
