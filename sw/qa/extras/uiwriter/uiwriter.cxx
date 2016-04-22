@@ -91,6 +91,7 @@
 #include <sfx2/classificationhelper.hxx>
 #include <LibreOfficeKit/LibreOfficeKitEnums.h>
 #include <config_features.h>
+#include <config_test.h>
 
 static const char* DATA_DIRECTORY = "/sw/qa/extras/uiwriter/data/";
 
@@ -3297,6 +3298,7 @@ void SwUiWriterTest::testTdf77014()
 
     load(DATA_DIRECTORY, "tdf77014.odt");
 
+#if ! TEST_FONTS_MISSING
     // First paragraph
     CPPUNIT_ASSERT_EQUAL(OUString("POR_TXT"), parseDump("/root/page/body/txt[4]/Text[1]", "nType"));
     CPPUNIT_ASSERT_EQUAL(OUString("91"),      parseDump("/root/page/body/txt[4]/Text[1]", "nLength"));
@@ -3330,6 +3332,7 @@ void SwUiWriterTest::testTdf77014()
 
     CPPUNIT_ASSERT_EQUAL(OUString("POR_TXT"), parseDump("/root/page/body/txt[5]/Text[5]", "nType"));
     CPPUNIT_ASSERT_EQUAL(OUString("1"),       parseDump("/root/page/body/txt[5]/Text[5]", "nLength"));
+#endif
 }
 
 void SwUiWriterTest::testTdf92648()

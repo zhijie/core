@@ -36,6 +36,8 @@
 #include <view.hxx>
 #include <wrtsh.hxx>
 
+#include <config_test.h>
+
 class Test : public SwModelTestBase
 {
 public:
@@ -652,7 +654,7 @@ DECLARE_WW8EXPORT_TEST(testCommentExport, "comment-export.odt")
     }
 }
 
-#if !defined(MACOSX)
+#if !defined(MACOSX) && ! TEST_FONTS_MISSING
 DECLARE_WW8EXPORT_TEST(testTableKeep, "tdf91083.odt")
 {
     //emulate table "keep with next" -do not split table

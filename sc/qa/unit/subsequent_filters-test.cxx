@@ -81,6 +81,8 @@
 #include "helper/shared_test_impl.hxx"
 #include <algorithm>
 
+#include <config_test.h>
+
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::uno;
 
@@ -1633,8 +1635,10 @@ void ScFiltersTest::testChartImportXLS()
     const SdrOle2Obj* pOleObj = getSingleChartObject(rDoc, 0);
     CPPUNIT_ASSERT_MESSAGE("Failed to retrieve a chart object from the 2nd sheet.", pOleObj);
 
+#if ! TEST_FONTS_MISSING
     CPPUNIT_ASSERT_EQUAL(11148L, pOleObj->GetLogicRect().getWidth());
     CPPUNIT_ASSERT(8640L > pOleObj->GetLogicRect().getHeight());
+#endif
 
     xDocSh->DoClose();
 }

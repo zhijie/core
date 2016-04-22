@@ -11689,7 +11689,7 @@ test_font_map()
         MAPPING="$(echo $1 | $AWK '{print tolower($0)}')"; shift
         TESTEXPR="${TESTEXPR} -o '${FONTFILE_LOWER}' = '$MAPPING-regular.ttf'"
     done
-    if test $TESTEXPR
+    if eval "test $TESTEXPR"
     then
         AC_MSG_RESULT([ok])
     else
@@ -11717,6 +11717,8 @@ else
             TEST_FONTS_MISSING=1
         else
             test_font_map 'Calibri' 'Carlito'
+            test_font_map 'Arial' 'LiberationSans'
+            test_font_map 'Times New Roman' 'LiberationSerif'
             if test ${TEST_FONTS_MISSING} -eq 1
             then
                 AC_MSG_WARN([Unknown font mappings - unit tests disabled.])

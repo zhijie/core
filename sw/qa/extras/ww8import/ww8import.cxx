@@ -23,6 +23,8 @@
 
 #include <bordertest.hxx>
 
+#include <config_test.h>
+
 #define convertTwipToMm100(TWIP) ((TWIP) >= 0 ? (((TWIP)*127L+36L)/72L) : (((TWIP)*127L-36L)/72L))
 
 class Test : public SwModelTestBase
@@ -531,8 +533,10 @@ DECLARE_WW8IMPORT_TEST(testfdo68963, "fdo68963.doc")
     // The problem was that the text was not displayed.
     CPPUNIT_ASSERT ( !parseDump("/root/page/body/tab/row[2]/cell[1]/txt/Special", "rText").isEmpty() );
     CPPUNIT_ASSERT_EQUAL( OUString("Topic 1"), parseDump("/root/page/body/tab/row[2]/cell[1]/txt/Special", "rText") );
+#if ! TEST_FONTS_MISSING
     // all crossreference bookmarks should have a target.  Shouldn't be any "Reference source not found" in the xml
     CPPUNIT_ASSERT ( -1 == parseDump("/root/page/body/txt[24]/Special[2]","rText").indexOf("Reference source not found"));
+#endif
 }
 
 DECLARE_WW8IMPORT_TEST(testTdf99100, "tdf99100.doc")
