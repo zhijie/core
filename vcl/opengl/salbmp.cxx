@@ -33,7 +33,7 @@
 #include "opengl/zone.hxx"
 #include "opengl/program.hxx"
 #include "opengl/salbmp.hxx"
-
+#include "opengl/RenderState.hxx"
 #include "opengl/FixedTextureAtlas.hxx"
 
 #if OSL_DEBUG_LEVEL > 0
@@ -537,6 +537,9 @@ bool OpenGLSalBitmap::ReadTexture()
 
     OpenGLVCLContextZone aContextZone;
 
+    rtl::Reference<OpenGLContext> xContext = OpenGLContext::getVCLContext();
+    xContext->state()->scissor().disable();
+
     if (mnBits == 8 || mnBits == 16 || mnBits == 24 || mnBits == 32)
     {
         determineTextureFormat(mnBits, nFormat, nType);
@@ -613,6 +616,7 @@ bool OpenGLSalBitmap::calcChecksumGL(OpenGLTexture& rInputTexture, ChecksumType&
     OUString FragShader("areaHashCRC64TFragmentShader");
 
     rtl::Reference< OpenGLContext > xContext = OpenGLContext::getVCLContext();
+    xContext->state()->scissor().disable();
 
     static vcl::DeleteOnDeinit<OpenGLTexture> gCRCTableTexture(
         new OpenGLTexture(512, 1, GL_RGBA, GL_UNSIGNED_BYTE,
@@ -880,7 +884,8 @@ bool OpenGLSalBitmap::Replace( const Color& rSearchColor, const Color& rReplaceC
     VCL_GL_INFO("::Replace");
 
     OpenGLZone aZone;
-    rtl::Reference< OpenGLContext > xContext = OpenGLContext::getVCLContext();
+    rtl::Reference<OpenGLContext> xContext = OpenGLContext::getVCLContext();
+    xContext->state()->scissor().disable();
 
     OpenGLFramebuffer* pFramebuffer;
     OpenGLProgram* pProgram;
@@ -919,6 +924,7 @@ bool OpenGLSalBitmap::ConvertToGreyscale()
 
     OpenGLZone aZone;
     rtl::Reference<OpenGLContext> xContext = OpenGLContext::getVCLContext();
+    xContext->state()->scissor().disable();
 
     OpenGLFramebuffer* pFramebuffer;
     OpenGLProgram* pProgram;
