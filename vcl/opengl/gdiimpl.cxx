@@ -263,8 +263,6 @@ void OpenGLSalGraphicsImpl::freeResources()
         VCL_GL_INFO( "freeResources" );
         mpContext->makeCurrent();
         FlushDeferredDrawing();
-        mpContext->state()->scissor().disable();
-        mpContext->state()->stencil().disable();
         mpContext->ReleaseFramebuffer( maOffscreenTex );
     }
     ReleaseContext();
@@ -272,6 +270,7 @@ void OpenGLSalGraphicsImpl::freeResources()
 
 void OpenGLSalGraphicsImpl::ImplSetClipBit( const vcl::Region& rClip, GLuint nMask )
 {
+    mpContext->state()->scissor().disable();
     mpContext->state()->stencil().enable();
 
     VCL_GL_INFO( "Adding complex clip / stencil" );
@@ -497,6 +496,10 @@ bool OpenGLSalGraphicsImpl::CheckOffscreenTexture()
 
         // TODO: lfrb: User GL_ARB_copy_image?
         OpenGLTexture aNewTex = OpenGLTexture( GetWidth(), GetHeight() );
+
+        mpContext->state()->scissor().disable();
+        mpContext->state()->stencil().disable();
+
         mpFramebuffer = mpContext->AcquireFramebuffer( aNewTex );
         DrawTexture( maOffscreenTex, aPosAry );
         maOffscreenTex = aNewTex;
@@ -2479,9 +2482,6 @@ void OpenGLSalGraphicsImpl::flush()
 {
     FlushDeferredDrawing();
 
-    mpContext->state()->scissor().disable();
-    mpContext->state()->stencil().disable();
-
     if( IsOffscreen() )
         return;
 
@@ -2537,6 +2537,8 @@ void OpenGLSalGraphicsImpl::doFlush()
     CHECK_GL_ERROR();
 
     VCL_GL_INFO( "flushAndSwap - acquire default framebuffer" );
+
+    mpWindowContext->state()->sync();
 
     mpWindowContext->AcquireDefaultFramebuffer();
     CHECK_GL_ERROR();
