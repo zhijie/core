@@ -22,6 +22,13 @@
 #include "cppdef.h"
 #include "cpp.h"
 
+static int evallex(int skip);
+static int dosizeof(void);
+static int bittest(int value);
+static int evalnum(int c);
+static int evalchar(int skip);
+static int *evaleval(int* valp, int op, int skip);
+
 /*
  * Evaluate an #if expression.
  */
@@ -370,7 +377,7 @@ again:
  * evalchar called to evaluate 'x'
  * evalnum  called to evaluate numbers.
  */
-FILE_LOCAL int evallex(int skip)
+static int evallex(int skip)
 {
     int c;
     int c1;
@@ -505,7 +512,7 @@ again:
  *  DIG     success
  *  OP_FAIL     bad parse or something.
  */
-FILE_LOCAL int dosizeof()
+static int dosizeof(void)
 {
     int c;
     TYPES* tp;
@@ -621,7 +628,7 @@ FILE_LOCAL int dosizeof()
 /*
  * TRUE if value is zero or exactly one bit is set in value.
  */
-FILE_LOCAL int bittest(int value)
+static int bittest(int value)
 {
 /* whoaa!! really worried about non 2's complement machines...
  * but not at all about cross-compiling ?
@@ -640,7 +647,7 @@ FILE_LOCAL int bittest(int value)
  * Expand number for #if lexical analysis.  Note: evalnum recognizes
  * the unsigned suffix, but only returns a signed int value.
  */
-FILE_LOCAL int evalnum(int c)
+static int evalnum(int c)
 {
     int value;
     int base;
@@ -679,7 +686,7 @@ FILE_LOCAL int evalnum(int c)
 /*
  * Get a character constant
  */
-FILE_LOCAL int evalchar(int skip)
+static int evalchar(int skip)
 {
     int c;
     int value;
@@ -785,7 +792,7 @@ FILE_LOCAL int evalchar(int skip)
  *
  * evaleval() returns the new pointer to the top of the value stack.
  */
-FILE_LOCAL int * evaleval(int* valp, int op, int skip)
+static int * evaleval(int* valp, int op, int skip)
 {
     int v1;
     int v2 = 0;
