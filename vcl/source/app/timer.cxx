@@ -90,6 +90,10 @@ void Timer::Invoke()
 
 void Timer::Start()
 {
+    static bool bDeterministic = getenv("SAL_DETERMINISTIC_SCHEDULING");
+    if (bDeterministic)
+        return;
+
     Scheduler::Start();
     Scheduler::ImplStartTimer(mnTimeout);
 }
