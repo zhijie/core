@@ -38,8 +38,6 @@ class SW_DLLPUBLIC SwGrfNode: public SwNoTextNode
 
     GraphicObject maGrfObj;
     GraphicObject *mpReplacementGraphic;
-    /// If false, don't try to read a replacement graphic even if mpReplacementGraphic is nullptr.
-    bool mbHasReplacementGraphic;
     tools::SvRef<sfx2::SvBaseLink> refLink;       ///< If graphics only as link then pointer is set.
     Size nGrfSize;
     bool bInSwapIn              :1;

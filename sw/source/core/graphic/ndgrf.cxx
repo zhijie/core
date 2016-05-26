@@ -69,7 +69,6 @@ SwGrfNode::SwGrfNode(
     SwNoTextNode( rWhere, ND_GRFNODE, pGrfColl, pAutoAttr ),
     maGrfObj(),
     mpReplacementGraphic(nullptr),
-    mbHasReplacementGraphic(true),
     // #i73788#
     mbLinkedInputStreamReady( false ),
     mbIsStreamReadOnly( false )
@@ -80,10 +79,6 @@ SwGrfNode::SwGrfNode(
 
     bGraphicArrived = true;
     ReRead(rGrfName, rFltName, pGraphic, nullptr, false);
-
-    const SvgDataPtr& rSvgDataPtr = GetGrf().getSvgData();
-    if (!rSvgDataPtr.get())
-        mbHasReplacementGraphic = false;
 }
 
 SwGrfNode::SwGrfNode( const SwNodeIndex & rWhere,
@@ -92,7 +87,6 @@ SwGrfNode::SwGrfNode( const SwNodeIndex & rWhere,
     SwNoTextNode( rWhere, ND_GRFNODE, pGrfColl, pAutoAttr ),
     maGrfObj(rGrfObj),
     mpReplacementGraphic(nullptr),
-    mbHasReplacementGraphic(true),
     // #i73788#
     mbLinkedInputStreamReady( false ),
     mbIsStreamReadOnly( false )
@@ -101,10 +95,6 @@ SwGrfNode::SwGrfNode( const SwNodeIndex & rWhere,
     bInSwapIn = bChgTwipSize  =
         bFrameInPaint = bScaleImageMap = false;
     bGraphicArrived = true;
-
-    const SvgDataPtr& rSvgDataPtr = GetGrf().getSvgData();
-    if (!rSvgDataPtr.get())
-        mbHasReplacementGraphic = false;
 }
 
 /** Create new SW/G reader.
@@ -120,7 +110,6 @@ SwGrfNode::SwGrfNode( const SwNodeIndex & rWhere,
     SwNoTextNode( rWhere, ND_GRFNODE, pGrfColl, pAutoAttr ),
     maGrfObj(),
     mpReplacementGraphic(nullptr),
-    mbHasReplacementGraphic(true),
     // #i73788#
     mbLinkedInputStreamReady( false ),
     mbIsStreamReadOnly( false )
@@ -340,12 +329,12 @@ void SwGrfNode::onGraphicChanged()
     // when it is set.
     SwFlyFrameFormat* pFlyFormat = dynamic_cast< SwFlyFrameFormat* >(GetFlyFormat());
 
-    const SvgDataPtr& rSvgDataPtr = GetGrf().getSvgData();
     if(pFlyFormat)
     {
         OUString aName;
         OUString aTitle;
         OUString aDesc;
+        const SvgDataPtr& rSvgDataPtr = GetGrf().getSvgData();
 
         if(rSvgDataPtr.get())
         {
@@ -383,8 +372,6 @@ void SwGrfNode::onGraphicChanged()
             SetDescription(aDesc);
         }
     }
-    if (!rSvgDataPtr.get())
-        mbHasReplacementGraphic = false;
 }
 
 void SwGrfNode::SetGraphic(const Graphic& rGraphic, const OUString& rLink)
@@ -407,9 +394,7 @@ const GraphicObject& SwGrfNode::GetGrfObj(bool bWait) const
 
 const GraphicObject* SwGrfNode::GetReplacementGrfObj() const
 {
-    // Don't attempt potentially expensive GetGrfObj() that may trigger a
-    // SwapIn() in case we know that getSvgData() will be nullptr anyway.
-    if(!mpReplacementGraphic && mbHasReplacementGraphic)
+    if(!mpReplacementGraphic)
     {
         const SvgDataPtr& rSvgDataPtr = GetGrfObj().GetGraphic().getSvgData();
 
