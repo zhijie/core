@@ -67,16 +67,6 @@ sal_uInt64 Idle::UpdateMinPeriod( sal_uInt64 nMinPeriod, sal_uInt64 /* nTime */ 
     case SchedulerPriority::REPAINT:
         nMinPeriod = ImmediateTimeoutMs; // don't wait.
         break;
-    case SchedulerPriority::LOW:
-    case SchedulerPriority::LOWER:
-    case SchedulerPriority::LOWEST:
-        // static bool bDeterministic = getenv("SAL_DETERMINISTIC_SCHEDULING");
-        // if (bDeterministic)
-        // {
-            nMinPeriod = Scheduler::InfiniteTimeoutMs;
-            break;
-        // }
-        // fall-through intended
     default:
         // FIXME: tdf#92036 workaround, I should be 1 too - wait 5ms
         if (nMinPeriod > 5) // only shrink the min. period if nothing is quicker.

@@ -43,12 +43,6 @@ bool Timer::IsIdle() const
 
 sal_uInt64 Timer::UpdateMinPeriod( sal_uInt64 nMinPeriod, sal_uInt64 nTime ) const
 {
-    // static bool bDeterministic = getenv("SAL_DETERMINISTIC_SCHEDULING");
-    // if (bDeterministic)
-    // {
-        return Scheduler::InfiniteTimeoutMs;
-    // }
-
     sal_uInt64 nDeltaTime;
     //determine smallest time slot
     if( mpSchedulerData->mnUpdateTime == nTime )
