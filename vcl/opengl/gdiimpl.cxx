@@ -613,22 +613,10 @@ void OpenGLSalGraphicsImpl::DrawPoint( long nX, long nY )
         GLfloat(nX), GLfloat(nY)
     };
 
+    std::vector<GLfloat> aExtrusion(3, 0);
+    mpProgram->SetExtrusionVectors(aExtrusion.data());
     ApplyProgramMatrices(0.5f);
     mpProgram->DrawArrays(GL_POINTS, pPoint);
-    CHECK_GL_ERROR();
-}
-
-void OpenGLSalGraphicsImpl::DrawLine( double nX1, double nY1, double nX2, double nY2 )
-{
-    OpenGLZone aZone;
-
-    std::vector<GLfloat> pPoint {
-        GLfloat(nX1), GLfloat(nY1),
-        GLfloat(nX2), GLfloat(nY2)
-    };
-
-    ApplyProgramMatrices(0.5f);
-    mpProgram->DrawArrays(GL_LINES, pPoint);
     CHECK_GL_ERROR();
 }
 
@@ -959,6 +947,8 @@ void OpenGLSalGraphicsImpl::DrawConvexPolygon( sal_uInt32 nPoints, const SalPoin
     }
 
     ApplyProgramMatrices();
+    std::vector<GLfloat> aExtrusion(nPoints * 3, 0);
+    mpProgram->SetExtrusionVectors(aExtrusion.data());
     mpProgram->DrawArrays(GL_TRIANGLE_FAN, aVertices);
     CHECK_GL_ERROR();
 
@@ -1002,6 +992,8 @@ void OpenGLSalGraphicsImpl::DrawConvexPolygon( const tools::Polygon& rPolygon, b
     }
 
     ApplyProgramMatrices();
+    std::vector<GLfloat> aExtrusion(nPoints * 3, 0);
+    mpProgram->SetExtrusionVectors(aExtrusion.data());
     mpProgram->DrawArrays(GL_TRIANGLE_FAN, aVertices);
     CHECK_GL_ERROR();
 
@@ -1051,6 +1043,8 @@ void OpenGLSalGraphicsImpl::DrawTrapezoid( const basegfx::B2DTrapezoid& trapezoi
         return;
     }
 
+    std::vector<GLfloat> aExtrusion(nPoints * 3, 0);
+    mpProgram->SetExtrusionVectors(aExtrusion.data());
     ApplyProgramMatrices();
     mpProgram->DrawArrays(GL_TRIANGLE_FAN, aVertices);
     CHECK_GL_ERROR();
@@ -1169,19 +1163,16 @@ void OpenGLSalGraphicsImpl::DrawRegionBand( const RegionBand& rRegion )
     CHECK_GL_ERROR();
 }
 
-void OpenGLSalGraphicsImpl::DrawTextureRect( OpenGLTexture& rTexture, const SalTwoRect& rPosAry, bool bInverted )
+void OpenGLSalGraphicsImpl::DrawTextureRect( OpenGLTexture& /*rTexture*/, const SalTwoRect& rPosAry, bool /*bInverted*/ )
 {
     OpenGLZone aZone;
 
     SAL_INFO("vcl.opengl", "draw texture rect");
 
-    GLfloat aTexCoord[8];
-    rTexture.GetCoord( aTexCoord, rPosAry, bInverted );
-    mpProgram->SetTextureCoord( aTexCoord );
     DrawRect( rPosAry.mnDestX, rPosAry.mnDestY, rPosAry.mnDestWidth, rPosAry.mnDestHeight );
 }
 
-void OpenGLSalGraphicsImpl::DrawTexture( OpenGLTexture& rTexture, const SalTwoRect& pPosAry, bool bInverted )
+void OpenGLSalGraphicsImpl::DrawTexture( OpenGLTexture& rTexture, const SalTwoRect& rPosAry, bool bInverted )
 {
     OpenGLZone aZone;
 
@@ -1192,7 +1183,14 @@ void OpenGLSalGraphicsImpl::DrawTexture( OpenGLTexture& rTexture, const SalTwoRe
     mpProgram->SetShaderType(TextureShaderType::Normal);
     mpProgram->SetIdentityTransform("transform");
     mpProgram->SetTexture("texture", rTexture);
-    DrawTextureRect( rTexture, pPosAry, bInverted );
+
+    GLfloat aTexCoord[8];
+    rTexture.GetCoord(aTexCoord, rPosAry, bInverted);
+    mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetMaskCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
+
+    DrawTextureRect( rTexture, rPosAry, bInverted );
     mpProgram->Clean();
 }
 
@@ -1405,6 +1403,13 @@ void OpenGLSalGraphicsImpl::DrawAlphaTexture( OpenGLTexture& rTexture, const Sal
     mpProgram->SetTexture("texture", rTexture);
     mpProgram->SetBlendMode( bPremultiplied ? GL_ONE : GL_SRC_ALPHA,
                              GL_ONE_MINUS_SRC_ALPHA );
+
+    GLfloat aTexCoord[8];
+    rTexture.GetCoord(aTexCoord, rPosAry, bInverted);
+    mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetMaskCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
+
     DrawTextureRect( rTexture, rPosAry, bInverted );
     mpProgram->Clean();
 }
@@ -1420,6 +1425,11 @@ void OpenGLSalGraphicsImpl::DrawTextureDiff( OpenGLTexture& rTexture, OpenGLText
     mpProgram->SetTexture( "texture", rTexture );
     mpProgram->SetTexture( "mask", rMask );
     mpProgram->SetBlendMode( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+    GLfloat aTexCoord[8];
+    rTexture.GetCoord(aTexCoord, rPosAry, bInverted);
+    mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
 
     GLfloat aMaskCoord[8];
     rMask.GetCoord(aMaskCoord, rPosAry, bInverted);
@@ -1444,6 +1454,7 @@ void OpenGLSalGraphicsImpl::DrawTextureWithMask( OpenGLTexture& rTexture, OpenGL
     GLfloat aTexCoord[8];
     rTexture.GetCoord(aTexCoord, rPosAry);
     mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
 
     GLfloat aMaskCoord[8];
     rMask.GetCoord(aMaskCoord, rPosAry);
@@ -1464,6 +1475,10 @@ void OpenGLSalGraphicsImpl::DrawBlendedTexture( OpenGLTexture& rTexture, OpenGLT
     mpProgram->SetTexture( "mask", rMask );
     mpProgram->SetTexture( "alpha", rAlpha );
 
+    GLfloat aTexCoord[8];
+    rTexture.GetCoord(aTexCoord, rPosAry);
+    mpProgram->SetTextureCoord(aTexCoord);
+
     GLfloat aAlphaCoord[8];
     rAlpha.GetCoord(aAlphaCoord, rPosAry);
     mpProgram->SetAlphaCoord(aAlphaCoord);
@@ -1477,7 +1492,7 @@ void OpenGLSalGraphicsImpl::DrawBlendedTexture( OpenGLTexture& rTexture, OpenGLT
     mpProgram->Clean();
 }
 
-void OpenGLSalGraphicsImpl::DrawMask( OpenGLTexture& rMask, SalColor nMaskColor, const SalTwoRect& pPosAry )
+void OpenGLSalGraphicsImpl::DrawMask( OpenGLTexture& rMask, SalColor nMaskColor, const SalTwoRect& rPosAry )
 {
     OpenGLZone aZone;
 
@@ -1487,8 +1502,15 @@ void OpenGLSalGraphicsImpl::DrawMask( OpenGLTexture& rMask, SalColor nMaskColor,
     mpProgram->SetIdentityTransform("transform");
     mpProgram->SetColor( "color", nMaskColor, 0 );
     mpProgram->SetTexture("texture", rMask);
+
+    GLfloat aTexCoord[8];
+    rMask.GetCoord(aTexCoord, rPosAry);
+    mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetMaskCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
+
     mpProgram->SetBlendMode( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    DrawTextureRect( rMask, pPosAry );
+    DrawTextureRect(rMask, rPosAry);
     mpProgram->Clean();
 }
 
@@ -1559,6 +1581,8 @@ void OpenGLSalGraphicsImpl::FlushDeferredDrawing()
             TextureDrawParameters& rParameters = rColorTwoRectPair.second;
             ApplyProgramMatrices();
             mpProgram->SetTextureCoord(rParameters.maTextureCoords.data());
+            mpProgram->SetMaskCoord(rParameters.maTextureCoords.data());
+            mpProgram->SetAlphaCoord(rParameters.maTextureCoords.data());
             mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
         }
     }
@@ -2060,6 +2084,13 @@ bool OpenGLSalGraphicsImpl::blendBitmap(
     mpProgram->SetShaderType(TextureShaderType::Normal);
     mpProgram->SetIdentityTransform("transform");
     mpProgram->SetTexture("texture", rTexture);
+
+    GLfloat aTexCoord[8];
+    rTexture.GetCoord(aTexCoord, rPosAry);
+    mpProgram->SetTextureCoord(aTexCoord);
+    mpProgram->SetMaskCoord(aTexCoord);
+    mpProgram->SetAlphaCoord(aTexCoord);
+
     mpProgram->SetBlendMode(GL_ZERO, GL_SRC_COLOR);
     DrawTextureRect(rTexture, rPosAry);
     mpProgram->Clean();
@@ -2344,7 +2375,9 @@ void OpenGLSalGraphicsImpl::doFlush()
 
         GLfloat aTexCoord[8];
         maOffscreenTex.GetCoord( aTexCoord, aPosAry, false );
-        pProgram->SetTextureCoord( aTexCoord );
+        pProgram->SetTextureCoord(aTexCoord);
+        pProgram->SetMaskCoord(aTexCoord);
+        pProgram->SetAlphaCoord(aTexCoord);
 
         GLfloat fWidth( maOffscreenTex.GetWidth() );
         GLfloat fHeight( maOffscreenTex.GetHeight() );
