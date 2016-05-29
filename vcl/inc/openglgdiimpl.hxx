@@ -29,6 +29,7 @@
 #include "opengl/texture.hxx"
 #include "regionband.hxx"
 #include "opengl/AccumulatedTextures.hxx"
+#include "opengl/RenderList.hxx"
 
 #include <vcl/opengl/OpenGLContext.hxx>
 
@@ -100,7 +101,8 @@ protected:
     SalColor mProgramSolidColor;
     double mProgramSolidTransparency;
 
-    std::unique_ptr<AccumulatedTextures> mpAccumulatedTextures;
+    std::unique_ptr<AccumulatedTextures>  mpAccumulatedTextures;
+    std::unique_ptr<RenderList> mpRenderList;
 
     void ImplInitClipRegion();
     void ImplSetClipBit( const vcl::Region& rClip, GLuint nMask );
@@ -114,11 +116,12 @@ public:
     bool UseSolid( SalColor nColor, sal_uInt8 nTransparency );
     bool UseSolid( SalColor nColor, double fTransparency );
     bool UseSolid( SalColor nColor );
+    bool UseSolid();
     bool UseLine(SalColor nColor, double fTransparency, GLfloat fLineWidth, bool bUseAA);
+    bool UseLine(GLfloat fLineWidth, bool bUseAA);
     bool UseInvert50();
     bool UseInvert(SalInvert nFlags);
 
-    void DrawPoint( long nX, long nY );
     void DrawConvexPolygon( sal_uInt32 nPoints, const SalPoint* pPtAry, bool blockAA = false );
     void DrawConvexPolygon( const tools::Polygon& rPolygon, bool blockAA = false );
     void DrawTrapezoid( const basegfx::B2DTrapezoid& trapezoid, bool blockAA = false );

@@ -73,6 +73,8 @@ private:
     ImplOpenGLTexture* mpImpl;
     int mnSlotNumber;
 
+    inline bool GetTextureRect(const SalTwoRect& rPosAry, bool bInverted, GLfloat& x1, GLfloat& x2, GLfloat& y1, GLfloat& y2) const;
+
 public:
                     OpenGLTexture();
                     OpenGLTexture(ImplOpenGLTexture* pImpl, Rectangle aRectangle, int nSlotNumber);
@@ -116,6 +118,13 @@ public:
     void FillCoords(std::vector<GLfloat>& aCoordVector, const SalTwoRect& rPosAry, bool bInverted) const;
 };
 
+template<> void OpenGLTexture::FillCoords<GL_TRIANGLES>(
+    std::vector<GLfloat>& aCoord, const SalTwoRect& rPosAry, bool bInverted)
+    const;
+
+template<> void OpenGLTexture::FillCoords<GL_TRIANGLE_FAN>(
+    std::vector<GLfloat>& aCoord, const SalTwoRect& rPosAry, bool bInverted)
+    const;
 #endif // INCLUDED_VCL_INC_OPENGL_TEXTURE_H
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

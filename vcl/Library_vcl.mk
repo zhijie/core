@@ -137,6 +137,7 @@ $(eval $(call gb_Library_add_exception_objects,vcl,\
 	vcl/opengl/FixedTextureAtlas \
     vcl/opengl/PackedTextureAtlas \
     vcl/source/opengl/OpenGLContext \
+    vcl/opengl/RenderList \
     vcl/source/opengl/OpenGLHelper \
     vcl/source/window/cairo_cairo \
     vcl/source/window/openglwin \
