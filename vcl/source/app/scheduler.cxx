@@ -174,7 +174,7 @@ bool Scheduler::ProcessTaskScheduling( bool bTimerOnly )
         return false;
 }
 
-static bool g_bDeterministicMode = true;
+static bool g_bDeterministicMode = false;
 
 void Scheduler::SetDeterministicMode(bool bDeterministic)
 {
