@@ -38,8 +38,6 @@ struct RenderTextureParameters
 
 struct RenderEntry
 {
-    basegfx::B2DRange maOverlapTrackingRectangle;
-
     RenderParameters maTriangleParameters;
     RenderParameters maLineParameters;
     RenderParameters maLineAAParameters;
@@ -70,59 +68,19 @@ struct RenderEntry
 class RenderList
 {
 private:
+    basegfx::B2DRange maOverlapTrackingRectangle;
     std::vector<RenderEntry> maRenderEntries;
-    std::vector<basegfx::B2DRange> maRectangles;
-
-    bool doesOverlap(const basegfx::B2DRange& rDrawRectangle)
-    {
-        if (!maRenderEntries.back().maOverlapTrackingRectangle.overlaps(rDrawRectangle))
-            return false;
-
-        for (const basegfx::B2DRange& rRectangle : maRectangles)
-        {
-            if (rRectangle.overlaps(rDrawRectangle))
-                return true;
-        }
-        return false;
-    }
 
     void checkOverlapping(const basegfx::B2DRange& rDrawRectangle)
     {
-        if (maRenderEntries.empty() || doesOverlap(rDrawRectangle))
+        if (maRenderEntries.empty() || maOverlapTrackingRectangle.overlaps(rDrawRectangle))
         {
             maRenderEntries.resize(maRenderEntries.size() + 1);
-            maRenderEntries.back().maOverlapTrackingRectangle = rDrawRectangle;
-
-            maRectangles.clear();
-            maRectangles.reserve(30);
-            maRectangles.push_back(rDrawRectangle);
+            maOverlapTrackingRectangle = rDrawRectangle;
         }
         else
         {
-            maRenderEntries.back().maOverlapTrackingRectangle.expand(rDrawRectangle);
-
-            if (maRectangles.size() < 30)
-            {
-                maRectangles.push_back(rDrawRectangle);
-            }
-            else
-            {
-                basegfx::B2DRange aTempRectangle(maRectangles[0]);
-                aTempRectangle.expand(rDrawRectangle);
-                double minArea = aTempRectangle.getWidth() * aTempRectangle.getHeight();
-                size_t index = 0;
-
-                double area;
-                for (size_t i = 1; i < maRectangles.size(); ++i)
-                {
-                    aTempRectangle = basegfx::B2DRange(maRectangles[i]);
-                    aTempRectangle.expand(rDrawRectangle);
-                    area = aTempRectangle.getWidth() * aTempRectangle.getHeight();
-                    if (area < minArea)
-                        index = i;
-                }
-                maRectangles[index].expand(rDrawRectangle);
-            }
+            maOverlapTrackingRectangle.expand(rDrawRectangle);
         }
     }
 
@@ -138,6 +96,7 @@ public:
     void clear()
     {
         maRenderEntries.clear();
+        maOverlapTrackingRectangle.reset();
     }
 
     std::vector<RenderEntry>& getEntries()
