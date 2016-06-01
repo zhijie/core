@@ -85,6 +85,7 @@ OpenGLSalGraphicsImpl::OpenGLSalGraphicsImpl(SalGraphics& rParent, SalGeometryPr
     , mnDrawCountAtFlush(0)
     , mProgramSolidColor(SALCOLOR_NONE)
     , mProgramSolidTransparency(0.0)
+    , mpAccumulatedTextures(new AccumulatedTextures)
     , mpRenderList(new RenderList)
 {
 }
@@ -1502,90 +1503,107 @@ void OpenGLSalGraphicsImpl::DrawMask( OpenGLTexture& rMask, SalColor nMaskColor,
 
 void OpenGLSalGraphicsImpl::DeferredTextDraw(OpenGLTexture& rTexture, SalColor aMaskColor, const SalTwoRect& rPosAry)
 {
-    mpRenderList->addDrawTextureWithMaskColor(rTexture, aMaskColor, rPosAry);
+    mpAccumulatedTextures->insert(rTexture, aMaskColor, rPosAry);
 }
 
 void OpenGLSalGraphicsImpl::FlushDeferredDrawing()
 {
-    if (mpRenderList->empty())
+    if (mpAccumulatedTextures->empty() && mpRenderList->empty())
         return;
 
     VCL_GL_INFO("FlushDeferredDrawing: " << mpRenderList->getEntries().size());
 
-    InitializePreDrawState(XOROption::IMPLEMENT_XOR);
-
-    OpenGLZone aZone;
-    for (RenderEntry& rRenderEntry : mpRenderList->getEntries())
+    if (!mpAccumulatedTextures->empty())
     {
-        if (rRenderEntry.hasTriangles() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
-        {
-            RenderParameters& rParameters = rRenderEntry.maTriangleParameters;
-            VCL_GL_INFO("Flush Triangles: " << rParameters.maVertices.size());
-            mpProgram->SetShaderType(DrawShaderType::Normal);
-            mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            ApplyProgramMatrices(0.5f);
-            mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
-            mpProgram->SetVertexColors(rParameters.maColors);
-            mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
-            CHECK_GL_ERROR();
-            mpProgram->Clean();
-        }
-        if (rRenderEntry.hasLines() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
-        {
-            RenderParameters& rParameters = rRenderEntry.maLineParameters;
-            VCL_GL_INFO("Flush Lines: " << rParameters.maVertices.size());
-            mpProgram->SetShaderType(DrawShaderType::Line);
-            mpProgram->SetUniform1f("line_width", 1.0f);
-            mpProgram->SetUniform1f("feather", 0.0f); // Anti-Aliasing disabled
-            mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            ApplyProgramMatrices(0.5f);
-            mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
-            mpProgram->SetVertexColors(rParameters.maColors);
-            mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
-            CHECK_GL_ERROR();
-            mpProgram->Clean();
-        }
-        if (rRenderEntry.hasLinesAA() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
-        {
-            RenderParameters& rParameters = rRenderEntry.maLineAAParameters;
-            VCL_GL_INFO("Flush Lines AA: " << rParameters.maVertices.size());
-            mpProgram->SetShaderType(DrawShaderType::Line);
-            mpProgram->SetUniform1f("line_width", 1.0f);
-            mpProgram->SetUniform1f("feather", 0.5f); // Anti-Aliasing enabled
-            mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            ApplyProgramMatrices(0.5f);
-            mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
-            mpProgram->SetVertexColors(rParameters.maColors);
-            mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
-            CHECK_GL_ERROR();
-            mpProgram->Clean();
-        }
-        if (rRenderEntry.hasTextures() && UseProgram("combinedTextureVertexShader", "combinedTextureFragmentShader", "#define USE_VERTEX_COLORS"))
-        {
-            mpProgram->SetShaderType(TextureShaderType::MaskedColor);
-            mpProgram->SetIdentityTransform("transform");
-            mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        InitializePreDrawState();
 
-            for (auto& rPair : rRenderEntry.maTextureParametersMap)
+        OpenGLZone aZone;
+
+        if (!UseProgram("combinedTextureVertexShader", "combinedTextureFragmentShader"))
+            return;
+        mpProgram->SetShaderType(TextureShaderType::MaskedColor);
+        mpProgram->SetIdentityTransform("transform");
+        mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        for (auto& rPair : mpAccumulatedTextures->getAccumulatedTexturesMap())
+        {
+            OpenGLTexture& rTexture = rPair.second->maTexture;
+            mpProgram->SetTexture("texture", rTexture);
+            for (auto& rColorTwoRectPair: rPair.second->maColorTextureDrawParametersMap)
             {
-                RenderTextureParameters& rParameters = rPair.second;
-                mpProgram->SetTexture("texture", rParameters.maTexture);
+                mpProgram->SetColor("color", rColorTwoRectPair.first, 0);
+                TextureDrawParameters& rParameters = rColorTwoRectPair.second;
                 ApplyProgramMatrices();
                 mpProgram->SetTextureCoord(rParameters.maTextureCoords.data());
                 mpProgram->SetMaskCoord(rParameters.maTextureCoords.data());
                 mpProgram->SetAlphaCoord(rParameters.maTextureCoords.data());
+                mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
+            }
+        }
+        mpProgram->Clean();
+        mpAccumulatedTextures->clear();
+
+        PostDraw();
+    }
+
+    if (!mpRenderList->empty())
+    {
+        InitializePreDrawState(XOROption::IMPLEMENT_XOR);
+
+        OpenGLZone aZone;
+        for (RenderEntry& rRenderEntry : mpRenderList->getEntries())
+        {
+            if (rRenderEntry.hasTriangles() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
+            {
+                RenderParameters& rParameters = rRenderEntry.maTriangleParameters;
+                VCL_GL_INFO("Flush Triangles: " << rParameters.maVertices.size());
+                mpProgram->SetShaderType(DrawShaderType::Normal);
+                mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                ApplyProgramMatrices(0.5f);
+                mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
                 mpProgram->SetVertexColors(rParameters.maColors);
                 mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
                 CHECK_GL_ERROR();
+                mpProgram->Clean();
             }
-            mpProgram->Clean();
+            if (rRenderEntry.hasLines() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
+            {
+                RenderParameters& rParameters = rRenderEntry.maLineParameters;
+                VCL_GL_INFO("Flush Lines: " << rParameters.maVertices.size());
+                mpProgram->SetShaderType(DrawShaderType::Line);
+                mpProgram->SetUniform1f("line_width", 1.0f);
+                mpProgram->SetUniform1f("feather", 0.0f); // Anti-Aliasing disabled
+                mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                ApplyProgramMatrices(0.5f);
+                mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
+                mpProgram->SetVertexColors(rParameters.maColors);
+                mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
+                CHECK_GL_ERROR();
+                mpProgram->Clean();
+            }
+            if (rRenderEntry.hasLinesAA() && UseProgram("combinedVertexShader", "combinedFragmentShader", "#define USE_VERTEX_COLORS"))
+            {
+                RenderParameters& rParameters = rRenderEntry.maLineAAParameters;
+                VCL_GL_INFO("Flush Lines AA: " << rParameters.maVertices.size());
+                mpProgram->SetShaderType(DrawShaderType::Line);
+                mpProgram->SetUniform1f("line_width", 1.0f);
+                mpProgram->SetUniform1f("feather", 0.5f); // Anti-Aliasing enabled
+                mpProgram->SetBlendMode(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                ApplyProgramMatrices(0.5f);
+                mpProgram->SetExtrusionVectors(rParameters.maExtrusionVectors.data());
+                mpProgram->SetVertexColors(rParameters.maColors);
+                mpProgram->DrawArrays(GL_TRIANGLES, rParameters.maVertices);
+                CHECK_GL_ERROR();
+                mpProgram->Clean();
+            }
         }
+
+        mpRenderList->clear();
+        PostDraw();
     }
 
-    mpRenderList->clear();
-    PostDraw();
-
     VCL_GL_INFO("End FlushDeferredDrawing");
+
 }
 
 void OpenGLSalGraphicsImpl::DrawLinearGradient( const Gradient& rGradient, const Rectangle& rRect )
@@ -1715,7 +1733,7 @@ void OpenGLSalGraphicsImpl::drawLine(long nX1, long nY1, long nX2, long nY2)
 void OpenGLSalGraphicsImpl::drawRect( long nX, long nY, long nWidth, long nHeight )
 {
     VCL_GL_INFO("::drawRect (" << nX << ", " << nY << ") [" << nWidth << ", " << nHeight << "]");
-    mpRenderList->addDrawRectangle(nX, nY, nWidth, nHeight, 0.0, mnLineColor, mnFillColor);
+    mpRenderList->addDrawRectangle(nX, nY, nWidth, nHeight, mnLineColor, mnFillColor);
 }
 
 void OpenGLSalGraphicsImpl::drawPolyLine( sal_uInt32 nPoints, const SalPoint* pPtAry )
@@ -1908,10 +1926,15 @@ void OpenGLSalGraphicsImpl::drawMask(
             const SalBitmap& rSalBitmap,
             SalColor nMaskColor )
 {
+    OpenGLZone aZone;
+
     const OpenGLSalBitmap& rBitmap = static_cast<const OpenGLSalBitmap&>(rSalBitmap);
+    OpenGLTexture& rTexture( rBitmap.GetTexture() );
 
     VCL_GL_INFO( "::drawMask" );
-    mpRenderList->addDrawTextureWithMaskColor(rBitmap.GetTexture(), nMaskColor, rPosAry);
+    PreDraw();
+    DrawMask( rTexture, nMaskColor, rPosAry );
+    PostDraw();
 }
 
 SalBitmap* OpenGLSalGraphicsImpl::getBitmap( long nX, long nY, long nWidth, long nHeight )
@@ -2115,8 +2138,15 @@ bool OpenGLSalGraphicsImpl::drawAlphaRect(
                 long nWidth, long nHeight,
                 sal_uInt8 nTransparency )
 {
-    VCL_GL_INFO("::drawAlphaRect (" << nX << ", " << nY << ") [" << nWidth << ", " << nHeight << "]");
-    mpRenderList->addDrawRectangle(nX, nY, nWidth, nHeight, double(nTransparency / 100.0), mnLineColor, mnFillColor);
+    VCL_GL_INFO( "::drawAlphaRect" );
+    if( mnFillColor != SALCOLOR_NONE && nTransparency < 100 )
+    {
+        PreDraw();
+        UseSolid( mnFillColor, nTransparency );
+        DrawRect( nX, nY, nWidth, nHeight );
+        PostDraw();
+    }
+
     return true;
 }
 

@@ -28,6 +28,7 @@
 #include "opengl/program.hxx"
 #include "opengl/texture.hxx"
 #include "regionband.hxx"
+#include "opengl/AccumulatedTextures.hxx"
 #include "opengl/RenderList.hxx"
 
 #include <vcl/opengl/OpenGLContext.hxx>
@@ -100,6 +101,7 @@ protected:
     SalColor mProgramSolidColor;
     double mProgramSolidTransparency;
 
+    std::unique_ptr<AccumulatedTextures>  mpAccumulatedTextures;
     std::unique_ptr<RenderList> mpRenderList;
 
     void ImplInitClipRegion();

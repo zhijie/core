@@ -11,15 +11,11 @@
 #ifndef INCLUDED_VCL_INC_OPENGL_RENDERLIST_H
 #define INCLUDED_VCL_INC_OPENGL_RENDERLIST_H
 
-#include <unordered_map>
-
 #include <glm/glm.hpp>
 
 #include <vcl/opengl/OpenGLHelper.hxx>
 #include <vcl/salgtype.hxx>
 #include <basegfx/range/b2drange.hxx>
-
-#include "opengl/texture.hxx"
 
 struct RenderParameters
 {
@@ -28,21 +24,11 @@ struct RenderParameters
     std::vector<glm::vec4> maColors;
 };
 
-struct RenderTextureParameters
-{
-    std::vector<GLfloat>   maVertices;
-    std::vector<glm::vec4> maColors;
-    std::vector<GLfloat>   maTextureCoords;
-    OpenGLTexture          maTexture;
-};
-
 struct RenderEntry
 {
     RenderParameters maTriangleParameters;
     RenderParameters maLineParameters;
     RenderParameters maLineAAParameters;
-
-    std::unordered_map<GLuint, RenderTextureParameters> maTextureParametersMap;
 
     bool hasTriangles()
     {
@@ -57,11 +43,6 @@ struct RenderEntry
     bool hasLinesAA()
     {
         return !maLineAAParameters.maVertices.empty();
-    }
-
-    bool hasTextures()
-    {
-        return !maTextureParametersMap.empty();
     }
 };
 
@@ -104,11 +85,9 @@ public:
         return maRenderEntries;
     }
 
-    bool addDrawTextureWithMaskColor(OpenGLTexture& rTexture, const SalColor& rColor, const SalTwoRect& r2Rect);
-
     void addDrawPixel(long nX, long nY, const SalColor& rColor);
 
-    void addDrawRectangle(long nX, long nY, long nWidth, long nHeight, double fTransparency,
+    void addDrawRectangle(long nX, long nY, long nWidth, long nHeight,
                           const SalColor& rLineColor, const SalColor& rFillColor);
 
     void addDrawLine(long nX1, long nY1, long nX2, long nY2, const SalColor& rLineColor, bool bUseAA);
