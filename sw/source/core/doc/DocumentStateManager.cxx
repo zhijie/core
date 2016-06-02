@@ -40,10 +40,9 @@ DocumentStateManager::DocumentStateManager( SwDoc& i_rSwdoc ) :
 void DocumentStateManager::SetModified()
 {
     m_rDoc.GetDocumentLayoutManager().ClearSwLayouterEntries();
-    bool bOldModified = mbModified;
     mbModified = true;
     m_rDoc.GetDocumentStatisticsManager().GetDocStat().bModified = true;
-    if( !bOldModified && m_rDoc.GetOle2Link().IsSet() )
+    if( m_rDoc.GetOle2Link().IsSet() )
     {
         mbInCallModified = true;
         m_rDoc.GetOle2Link().Call( true );
