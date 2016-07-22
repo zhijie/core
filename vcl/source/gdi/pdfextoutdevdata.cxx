@@ -294,17 +294,13 @@ struct PageSyncData
     std::deque< PDFWriter::StructAttribute >        mParaStructAttributes;
     std::deque< PDFWriter::StructAttributeValue >   mParaStructAttributeValues;
     std::deque< Graphic >                           mGraphics;
-    Graphic                                         mCurrentGraphic;
     std::deque< std::shared_ptr< PDFWriter::AnyWidget > >
                                                     mControls;
     GlobalSyncData*                                 mpGlobalData;
 
     bool                                        mbGroupIgnoreGDIMtfActions;
 
-
-    explicit PageSyncData( GlobalSyncData* pGlobal )
-        : mbGroupIgnoreGDIMtfActions ( false )
-    { mpGlobalData = pGlobal; }
+    explicit PageSyncData( GlobalSyncData* pGlobal ) : mbGroupIgnoreGDIMtfActions ( false ) { mpGlobalData = pGlobal; }
 
     void PushAction( const OutputDevice& rOutDev, const PDFExtOutDevDataSync::Action eAct );
     bool PlaySyncPageAct( PDFWriter& rWriter, sal_uInt32& rCurGDIMtfAction, const PDFExtOutDevData& rOutDevData );
@@ -407,19 +403,12 @@ bool PageSyncData::PlaySyncPageAct( PDFWriter& rWriter, sal_uInt32& rCurGDIMtfAc
                     }
                     else if ( aBeg->eAct == PDFExtOutDevDataSync::EndGroupGfxLink )
                     {
-                        Graphic& rGraphic = mGraphics.front();
-                        if ( rGraphic.IsLink() )
+                        if ( rOutDevData.GetIsLosslessCompression() && !rOutDevData.GetIsReduceImageResolution() )
                         {
-                            GfxLinkType eType = rGraphic.GetLink().GetType();
-                            if ( eType == GFX_LINK_TYPE_NATIVE_JPG  )
+                            Graphic& rGraphic = mGraphics.front();
+                            if ( rGraphic.IsLink() && rGraphic.GetLink().GetType() == GFX_LINK_TYPE_NATIVE_JPG )
                             {
-                                mbGroupIgnoreGDIMtfActions = rOutDevData.GetIsLosslessCompression() && !rOutDevData.GetIsReduceImageResolution();
-                                if ( !mbGroupIgnoreGDIMtfActions )
-                                    mCurrentGraphic = rGraphic;
-                            }
-                            else if ( eType == GFX_LINK_TYPE_NATIVE_PNG )
-                            {
-                                mCurrentGraphic = rGraphic;
+                                mbGroupIgnoreGDIMtfActions = true;
                             }
                         }
                         break;
@@ -475,7 +464,6 @@ bool PageSyncData::PlaySyncPageAct( PDFWriter& rWriter, sal_uInt32& rCurGDIMtfAc
                     }
                     mbGroupIgnoreGDIMtfActions = false;
                 }
-                mCurrentGraphic.Clear();
             }
             break;
             case PDFExtOutDevDataSync::CreateNamedDest:
@@ -526,11 +514,6 @@ PDFExtOutDevData::~PDFExtOutDevData()
 {
     delete mpPageSyncData;
     delete mpGlobalSyncData;
-}
-
-Graphic PDFExtOutDevData::GetCurrentGraphic() const
-{
-    return mpPageSyncData->mCurrentGraphic;
 }
 
 void PDFExtOutDevData::SetDocumentLocale( const css::lang::Locale& rLoc )

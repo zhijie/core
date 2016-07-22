@@ -146,8 +146,6 @@ public:
 
     std::vector< PDFExtOutDevBookmarkEntry >& GetBookmarks() { return maBookmarks;}
 
-    Graphic GetCurrentGraphic() const;
-
     /** Start a new group of render output
 
         Use this method to group render output.
