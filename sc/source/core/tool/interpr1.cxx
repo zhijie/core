@@ -3652,11 +3652,6 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
                     }
                     while ((nErr == 0) && aValIter.GetNext(fVal, nErr));
                 }
-                if ( nErr )
-                {
-                    SetError(nErr);
-                    return;
-                }
             }
             break;
             case svMatrix :
@@ -3703,12 +3698,6 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
                 Pop();
                 SetError(errIllegalParameter);
         }
-    }
-
-    if ( nGlobalError )
-    {
-        rValCount = 0.0;
-        return;
     }
 
     ::std::vector<double>::size_type n = values.size();
