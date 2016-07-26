@@ -8525,7 +8525,6 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
                 if ( nErr )
                 {
                     SetError(nErr);
-                    return;
                 }
             }
             break;
