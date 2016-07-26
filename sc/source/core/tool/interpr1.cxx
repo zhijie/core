@@ -3592,181 +3592,6 @@ void ScInterpreter::ScMax( bool bTextAsZero )
         PushDouble(nMax);
 }
 
-void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
-                bool bTextAsZero )
-{
-    short nParamCount = GetByte();
-
-    std::vector<double> values;
-    double fSum    = 0.0;
-    double vSum    = 0.0;
-    double vMean    = 0.0;
-    double fVal = 0.0;
-    rValCount = 0.0;
-    ScAddress aAdr;
-    ScRange aRange;
-    size_t nRefInList = 0;
-    while (nParamCount-- > 0)
-    {
-        switch (GetStackType())
-        {
-            case svDouble :
-            {
-                fVal = GetDouble();
-                values.push_back(fVal);
-                fSum    += fVal;
-                rValCount++;
-            }
-            break;
-            case svSingleRef :
-            {
-                PopSingleRef( aAdr );
-                ScRefCellValue aCell(*pDok, aAdr);
-                if (aCell.hasNumeric())
-                {
-                    fVal = GetCellValue(aAdr, aCell);
-                    values.push_back(fVal);
-                    fSum += fVal;
-                    rValCount++;
-                }
-                else if (bTextAsZero && aCell.hasString())
-                {
-                    values.push_back(0.0);
-                    rValCount++;
-                }
-            }
-            break;
-            case svDoubleRef :
-            case svRefList :
-            {
-                sal_uInt16 nErr = 0;
-                PopDoubleRef( aRange, nParamCount, nRefInList);
-                ScValueIterator aValIter( pDok, aRange, mnSubTotalFlags, bTextAsZero );
-                if (aValIter.GetFirst(fVal, nErr))
-                {
-                    do
-                    {
-                        values.push_back(fVal);
-                        fSum += fVal;
-                        rValCount++;
-                    }
-                    while ((nErr == 0) && aValIter.GetNext(fVal, nErr));
-                }
-            }
-            break;
-            case svMatrix :
-            {
-                ScMatrixRef pMat = PopMatrix();
-                if (pMat)
-                {
-                    SCSIZE nC, nR;
-                    pMat->GetDimensions(nC, nR);
-                    for (SCSIZE nMatCol = 0; nMatCol < nC; nMatCol++)
-                    {
-                        for (SCSIZE nMatRow = 0; nMatRow < nR; nMatRow++)
-                        {
-                            if (!pMat->IsString(nMatCol,nMatRow))
-                            {
-                                fVal= pMat->GetDouble(nMatCol,nMatRow);
-                                values.push_back(fVal);
-                                fSum += fVal;
-                                rValCount++;
-                            }
-                            else if ( bTextAsZero )
-                            {
-                                values.push_back(0.0);
-                                rValCount++;
-                            }
-                        }
-                    }
-                }
-            }
-            break;
-            case svString :
-            {
-                Pop();
-                if ( bTextAsZero )
-                {
-                    values.push_back(0.0);
-                    rValCount++;
-                }
-                else
-                    SetError(errIllegalParameter);
-            }
-            break;
-            default :
-                Pop();
-                SetError(errIllegalParameter);
-        }
-    }
-
-    ::std::vector<double>::size_type n = values.size();
-    vMean = fSum / n;
-    for (::std::vector<double>::size_type i = 0; i < n; i++)
-        vSum += ::rtl::math::approxSub( values[i], vMean) * ::rtl::math::approxSub( values[i], vMean);
-    rVal = vSum;
-}
-
-void ScInterpreter::ScVar( bool bTextAsZero )
-{
-    double nVal;
-    double nValCount;
-    GetStVarParams( nVal, nValCount, bTextAsZero );
-
-    if (nValCount <= 1.0)
-        PushError( errDivisionByZero );
-    else
-        PushDouble( nVal / (nValCount - 1.0));
-}
-
-void ScInterpreter::ScVarP( bool bTextAsZero )
-{
-    double nVal;
-    double nValCount;
-    GetStVarParams( nVal, nValCount, bTextAsZero );
-
-    PushDouble( div( nVal, nValCount));
-}
-
-void ScInterpreter::ScStDev( bool bTextAsZero )
-{
-    double nVal;
-    double nValCount;
-    GetStVarParams( nVal, nValCount, bTextAsZero );
-    if (nValCount <= 1.0)
-        PushError( errDivisionByZero );
-    else
-        PushDouble( sqrt( nVal / (nValCount - 1.0)));
-}
-
-void ScInterpreter::ScStDevP( bool bTextAsZero )
-{
-    double nVal;
-    double nValCount;
-    GetStVarParams( nVal, nValCount, bTextAsZero );
-    if (nValCount == 0.0)
-        PushError( errDivisionByZero );
-    else
-        PushDouble( sqrt( nVal / nValCount));
-
-    /* this was: PushDouble( sqrt( div( nVal, nValCount)));
-     *
-     * Besides that the special NAN gets lost in the call through sqrt(),
-     * unxlngi6.pro then looped back and forth somewhere between div() and
-     * ::rtl::math::setNan(). Tests showed that
-     *
-     *      sqrt( div( 1, 0));
-     *
-     * produced a loop, but
-     *
-     *      double f1 = div( 1, 0);
-     *      sqrt( f1 );
-     *
-     * was fine. There seems to be some compiler optimization problem. It does
-     * not occur when compiled with debug=t.
-     */
-}
-
 void ScInterpreter::ScColumns()
 {
     sal_uInt8 nParamCount = GetByte();
@@ -8631,6 +8456,190 @@ bool ScInterpreter::LookupQueryWithCache( ScAddress & o_rResultPos,
         }
     }
     return bFound;
+}
+
+void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
+                bool bTextAsZero )
+{
+    short nParamCount = GetByte();
+
+    std::vector<double> values;
+    double fSum    = 0.0;
+    double vSum    = 0.0;
+    double vMean    = 0.0;
+    double fVal = 0.0;
+    rValCount = 0.0;
+    ScAddress aAdr;
+    ScRange aRange;
+    size_t nRefInList = 0;
+    while (nParamCount-- > 0)
+    {
+        switch (GetStackType())
+        {
+            case svDouble :
+            {
+                fVal = GetDouble();
+                if ( nGlobalError )
+                    return;
+                values.push_back(fVal);
+                fSum    += fVal;
+                rValCount++;
+            }
+            break;
+            case svSingleRef :
+            {
+                PopSingleRef( aAdr );
+                ScRefCellValue aCell(*pDok, aAdr);
+                if (aCell.hasNumeric())
+                {
+                    fVal = GetCellValue(aAdr, aCell);
+                    if ( nGlobalError )
+                        return;
+                    values.push_back(fVal);
+                    fSum += fVal;
+                    rValCount++;
+                }
+                else if (bTextAsZero && aCell.hasString())
+                {
+                    values.push_back(0.0);
+                    rValCount++;
+                }
+            }
+            break;
+            case svDoubleRef :
+            case svRefList :
+            {
+                sal_uInt16 nErr = 0;
+                PopDoubleRef( aRange, nParamCount, nRefInList);
+                ScValueIterator aValIter( pDok, aRange, mnSubTotalFlags, bTextAsZero );
+                if (aValIter.GetFirst(fVal, nErr))
+                {
+                    do
+                    {
+                        values.push_back(fVal);
+                        fSum += fVal;
+                        rValCount++;
+                    }
+                    while ((nErr == 0) && aValIter.GetNext(fVal, nErr));
+                }
+                if ( nErr )
+                {
+                    SetError(nErr);
+                    return;
+                }
+            }
+            break;
+            case svMatrix :
+            {
+                ScMatrixRef pMat = PopMatrix();
+                if (pMat)
+                {
+                    SCSIZE nC, nR;
+                    pMat->GetDimensions(nC, nR);
+                    for (SCSIZE nMatCol = 0; nMatCol < nC; nMatCol++)
+                    {
+                        for (SCSIZE nMatRow = 0; nMatRow < nR; nMatRow++)
+                        {
+                            if (!pMat->IsString(nMatCol,nMatRow))
+                            {
+                                fVal= pMat->GetDouble(nMatCol,nMatRow);
+                                values.push_back(fVal);
+                                fSum += fVal;
+                                rValCount++;
+                            }
+                            else if ( bTextAsZero )
+                            {
+                                values.push_back(0.0);
+                                rValCount++;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            case svString :
+            {
+                Pop();
+                if ( bTextAsZero )
+                {
+                    values.push_back(0.0);
+                    rValCount++;
+                }
+                else
+                    SetError(errIllegalParameter);
+            }
+            break;
+            default :
+                Pop();
+                SetError(errIllegalParameter);
+        }
+    }
+
+    ::std::vector<double>::size_type n = values.size();
+    vMean = fSum / n;
+    for (::std::vector<double>::size_type i = 0; i < n; i++)
+        vSum += ::rtl::math::approxSub( values[i], vMean) * ::rtl::math::approxSub( values[i], vMean);
+    rVal = vSum;
+}
+
+void ScInterpreter::ScVar( bool bTextAsZero )
+{
+    double nVal;
+    double nValCount;
+    GetStVarParams( nVal, nValCount, bTextAsZero );
+
+    if (nValCount <= 1.0)
+        PushError( errDivisionByZero );
+    else
+        PushDouble( nVal / (nValCount - 1.0));
+}
+
+void ScInterpreter::ScVarP( bool bTextAsZero )
+{
+    double nVal;
+    double nValCount;
+    GetStVarParams( nVal, nValCount, bTextAsZero );
+
+    PushDouble( div( nVal, nValCount));
+}
+
+void ScInterpreter::ScStDev( bool bTextAsZero )
+{
+    double nVal;
+    double nValCount;
+    GetStVarParams( nVal, nValCount, bTextAsZero );
+    if (nValCount <= 1.0)
+        PushError( errDivisionByZero );
+    else
+        PushDouble( sqrt( nVal / (nValCount - 1.0)));
+}
+
+void ScInterpreter::ScStDevP( bool bTextAsZero )
+{
+    double nVal;
+    double nValCount;
+    GetStVarParams( nVal, nValCount, bTextAsZero );
+    if (nValCount == 0.0)
+        PushError( errDivisionByZero );
+    else
+        PushDouble( sqrt( nVal / nValCount));
+
+    /* this was: PushDouble( sqrt( div( nVal, nValCount)));
+     *
+     * Besides that the special NAN gets lost in the call through sqrt(),
+     * unxlngi6.pro then looped back and forth somewhere between div() and
+     * ::rtl::math::setNan(). Tests showed that
+     *
+     *      sqrt( div( 1, 0));
+     *
+     * produced a loop, but
+     *
+     *      double f1 = div( 1, 0);
+     *      sqrt( f1 );
+     *
+     * was fine. There seems to be some compiler optimization problem. It does
+     * not occur when compiled with debug=t.
+     */
 }
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */
