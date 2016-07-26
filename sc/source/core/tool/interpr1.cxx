@@ -3613,8 +3613,6 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
             case svDouble :
             {
                 fVal = GetDouble();
-                if ( nGlobalError )
-                    return;
                 values.push_back(fVal);
                 fSum    += fVal;
                 rValCount++;
@@ -3627,8 +3625,6 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
                 if (aCell.hasNumeric())
                 {
                     fVal = GetCellValue(aAdr, aCell);
-                    if ( nGlobalError )
-                        return;
                     values.push_back(fVal);
                     fSum += fVal;
                     rValCount++;
@@ -3707,6 +3703,12 @@ void ScInterpreter::GetStVarParams( double& rVal, double& rValCount,
                 Pop();
                 SetError(errIllegalParameter);
         }
+    }
+
+    if ( nGlobalError )
+    {
+        rValCount = 0.0;
+        return;
     }
 
     ::std::vector<double>::size_type n = values.size();
