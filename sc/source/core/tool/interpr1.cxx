@@ -4704,7 +4704,8 @@ void ScInterpreter::ScCountEmptyCells()
     }
 }
 
-double ScInterpreter::IterateParametersIf( ScIterFuncIf eFunc )
+template< ScIterFuncIf eFunc >
+double ScInterpreter::IterateParametersIf()
 {
     sal_uInt8 nParamCount = GetByte();
     if ( !MustHaveParamCount( nParamCount, 2, 3 ) )
@@ -5113,12 +5114,12 @@ double ScInterpreter::IterateParametersIf( ScIterFuncIf eFunc )
 
 void ScInterpreter::ScSumIf()
 {
-    PushDouble( IterateParametersIf( ifSUMIF));
+    PushDouble( IterateParametersIf< ifSUMIF> ());
 }
 
 void ScInterpreter::ScAverageIf()
 {
-    PushDouble( IterateParametersIf( ifAVERAGEIF));
+    PushDouble( IterateParametersIf< ifAVERAGEIF >());
 }
 
 void ScInterpreter::ScCountIf()
@@ -5311,7 +5312,8 @@ void ScInterpreter::ScCountIf()
     }
 }
 
-double ScInterpreter::IterateParametersIfs( ScIterFuncIfs eFunc )
+template< ScIterFuncIfs eFunc >
+double ScInterpreter::IterateParametersIfs()
 {
     sal_uInt8 nParamCount = GetByte();
     sal_uInt8 nQueryCount = nParamCount / 2;
@@ -5739,28 +5741,28 @@ double ScInterpreter::IterateParametersIfs( ScIterFuncIfs eFunc )
 
 void ScInterpreter::ScSumIfs()
 {
-    PushDouble( IterateParametersIfs( ifSUMIFS));
+    PushDouble( IterateParametersIfs< ifSUMIFS >() );
 }
 
 void ScInterpreter::ScAverageIfs()
 {
-    PushDouble( IterateParametersIfs( ifAVERAGEIFS));
+    PushDouble( IterateParametersIfs< ifAVERAGEIFS >() );
 }
 
 void ScInterpreter::ScCountIfs()
 {
-    PushDouble( IterateParametersIfs( ifCOUNTIFS));
+    PushDouble( IterateParametersIfs< ifCOUNTIFS >() );
 }
 
 void ScInterpreter::ScMinIfs_MS()
 {
-    PushDouble( IterateParametersIfs( ifMINIFS ) );
+    PushDouble( IterateParametersIfs< ifMINIFS >() );
 }
 
 
 void ScInterpreter::ScMaxIfs_MS()
 {
-    PushDouble( IterateParametersIfs( ifMAXIFS ) );
+    PushDouble( IterateParametersIfs< ifMAXIFS >() );
 }
 
 void ScInterpreter::ScLookup()
