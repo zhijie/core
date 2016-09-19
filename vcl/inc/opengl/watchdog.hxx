@@ -14,6 +14,41 @@
 #include <sal/types.h>
 #include <rtl/ref.hxx>
 #include <salhelper/thread.hxx>
+#include <osl/mutex.hxx>
+
+struct WatchdogTimings
+{
+    osl::Mutex maMutex;
+
+    int mnMode;
+
+    std::vector<int> maDisableEntries;
+    std::vector<int> maAbortAfter;
+
+    WatchdogTimings();
+
+    void relax();
+
+    int getMode()
+    {
+        return mnMode;
+    }
+
+    void setMode(int nMode)
+    {
+        mnMode = nMode;
+    }
+
+    int getDisableEntries()
+    {
+       return maDisableEntries[mnMode];
+    }
+
+    int getAbortAfter()
+    {
+        return maAbortAfter[mnMode];
+    }
+};
 
 class OpenGLWatchdogThread : private salhelper::Thread
 {
