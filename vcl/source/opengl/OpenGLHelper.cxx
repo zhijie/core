@@ -827,10 +827,10 @@ void WatchdogTimings::relax()
 {
     osl::MutexGuard g(maMutex);
 
-    maDisableEntries[0] = 20; /*  5s */
-    maDisableEntries[1] = 60; /* 15s */
+    maDisableEntries[0] = 180; /* 45s */
+    maDisableEntries[1] = 180; /* 45s */
 
-    maAbortAfter[0] = 40;  /* 10s */
+    maAbortAfter[0] = 240; /* 60s */
     maAbortAfter[1] = 240; /* 60s */
 }
 
@@ -841,10 +841,6 @@ OpenGLWatchdogThread::OpenGLWatchdogThread()
 
 void OpenGLWatchdogThread::execute()
 {
-    // delays to take various actions in 1/4 of a second increments.
-    static const int nDisableEntries[2] = { 6 /* 1.5s */, 20 /* 5s */ };
-    static const int nAbortAfter[2]     = { 20 /* 10s */, 120 /* 30s */ };
-
     int nUnchanged = 0; // how many unchanged nEnters
     TimeValue aQuarterSecond(0, 1000*1000*1000*0.25);
     bool bAbortFired = false;

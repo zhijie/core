@@ -22,6 +22,7 @@ struct WatchdogTimings
 
     int mnMode;
 
+    /// delays to take various actions in 1/4 of a second increments.
     std::vector<int> maDisableEntries;
     std::vector<int> maAbortAfter;
 
