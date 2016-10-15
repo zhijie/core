@@ -39,7 +39,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include <limits>
 
 class ScDocument;
 class SbxVariable;
@@ -62,15 +61,6 @@ namespace sc {
 struct RangeMatrix;
 struct Compare;
 struct CompareOptions;
-
-struct ParamIfsResult
-{
-    double mfSum = 0.0;
-    double mfMem = 0.0;
-    double mfCount = 0.0;
-    double mfMin = std::numeric_limits<double>::max();
-    double mfMax = std::numeric_limits<double>::min();
-};
 
 }
 
@@ -565,7 +555,7 @@ double IterateParametersIf( ScIterFuncIf );
 void ScCountIf();
 void ScSumIf();
 void ScAverageIf();
-void IterateParametersIfs( sc::ParamIfsResult& rRes );
+double IterateParametersIfs( ScIterFuncIfs );
 void ScSumIfs();
 void ScAverageIfs();
 void ScCountIfs();
