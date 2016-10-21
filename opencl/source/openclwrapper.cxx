@@ -648,9 +648,7 @@ bool createPlatformInfo(cl_platform_id nPlatformId, OpenCLPlatformInfo& rPlatfor
 const std::vector<OpenCLPlatformInfo>& fillOpenCLInfo()
 {
     static std::vector<OpenCLPlatformInfo> aPlatforms;
-
-    // return early if we already initialized or SAL_DISABLE_OPENCL is set
-    if (!aPlatforms.empty() || getenv("SAL_DISABLE_OPENCL"))
+    if(!aPlatforms.empty())
         return aPlatforms;
 
     int status = clewInit(OPENCL_DLL_NAME);
@@ -735,7 +733,7 @@ void findDeviceInfoFromDeviceId(cl_device_id aDeviceId, size_t& rDeviceId, size_
 
 bool switchOpenCLDevice(const OUString* pDevice, bool bAutoSelect, bool bForceEvaluation, OUString& rOutSelectedDeviceVersionIDString)
 {
-    if (getenv("SAL_DISABLE_OPENCL") || fillOpenCLInfo().empty())
+    if(fillOpenCLInfo().empty() || getenv("SAL_DISABLE_OPENCL"))
         return false;
 
     cl_device_id pDeviceId = nullptr;
