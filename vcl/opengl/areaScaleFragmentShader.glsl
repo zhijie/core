@@ -32,11 +32,14 @@ varying vec2 mask_coord;
 uniform sampler2D mask;
 #endif
 
-float calculateContribution(float fLow, float fHigh, int value)
+vec4 getTexel(int x, int y)
 {
-    float start = max(0.0, fLow - value);
-    float end   = max(0.0, (value + 1) - fHigh);
-    return (1.0 - start - end) / (fHigh - fLow);
+    vec2 offset = vec2(x * xsrcconvert, y * ysrcconvert);
+    vec4 texel = texture2D(sampler, offset);
+#ifdef MASKED
+    texel.a = 1.0 - texture2D(mask, offset).r;
+#endif
+    return texel;
 }
 
 void main(void)
@@ -59,47 +62,67 @@ void main(void)
     int ystart = int(floor(fsy1));
     int yend   = int(floor(fsy2));
 
-#ifdef ARRAY_BASED
-    int posX = 0;
-    float ratio[16];
+    float xlength = fsx2 - fsx1;
+    float ylength = fsy2 - fsy1;
 
-    for (int x = xstart; x <= xend; ++x)
-    {
-        float contributionX = calculateContribution(fsx1, fsx2, x);
-        ratio[posX] = contributionX;
-        posX++;
-    }
-#endif
+    float xStartContribution  = (1.0 - max(0.0, fsx1 - xstart))     / xlength;
+    float xMiddleContribution =  1.0 / xlength;
+    float xEndContribution    = (1.0 - max(0.0, (xend + 1) - fsx2)) / xlength;
+
+    float yStartContribution  = (1.0 - max(0.0, fsy1 - ystart))     / ylength;
+    float yMiddleContribution =  1.0 / ylength;
+    float yEndContribution    = (1.0 - max(0.0, (yend + 1) - fsy2)) / ylength;
 
     vec4 sumAll = vec4(0.0, 0.0, 0.0, 0.0);
 
-    for (int y = ystart; y <= yend; ++y)
-    {
-        vec4 sumX = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 offset;
+    vec4 texel;
+    vec4 sumX;
 
-#ifdef ARRAY_BASED
-        posX = 0;
-#endif
-        for (int x = xstart; x <= xend; ++x)
+    // First Y pass
+    sumX = vec4(0.0, 0.0, 0.0, 0.0);
+
+    sumX += getTexel(xstart, ystart) * xStartContribution;
+
+    for (int x = xstart + 1; x < xend; ++x)
+    {
+       sumX += getTexel(x, ystart) * xMiddleContribution;
+    }
+
+    sumX += getTexel(xend, ystart) * xEndContribution;
+
+    sumAll += sumX * yStartContribution;
+
+    // Middle Y Passes
+    for (int y = ystart + 1; y < yend; ++y)
+    {
+        sumX = vec4(0.0, 0.0, 0.0, 0.0);
+
+        sumX += getTexel(xstart, y) * xStartContribution;
+
+        for (int x = xstart + 1; x < xend; ++x)
         {
-#ifdef ARRAY_BASED
-            float contributionX = ratio[posX];
-            posX++;
-#else
-            float contributionX = calculateContribution(fsx1, fsx2, x);
-#endif
-            vec2 offset = vec2(x * xsrcconvert, y * ysrcconvert);
-            vec4 texel = texture2D(sampler, offset);
-#ifdef MASKED
-            texel.a = 1.0 - texture2D(mask, offset).r;
-#endif
-            sumX += texel * contributionX;
+            sumX += getTexel(x, y) * xMiddleContribution;
         }
 
-        float contributionY = calculateContribution(fsy1, fsy2, y);
+        sumX += getTexel(xend, y) * xEndContribution;
 
-        sumAll += sumX * contributionY;
+        sumAll += sumX * yMiddleContribution;
     }
+
+    // Last Y pass
+    sumX = vec4(0.0, 0.0, 0.0, 0.0);
+
+    sumX += getTexel(xstart, yend) * xStartContribution;
+
+    for (int x = xstart + 1; x < xend; ++x)
+    {
+        sumX += getTexel(x, yend) * xMiddleContribution;
+    }
+
+    sumX += getTexel(xend, yend) * xEndContribution;
+
+    sumAll += sumX * yEndContribution;
 
     gl_FragColor = sumAll;
 }
