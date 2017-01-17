@@ -302,6 +302,7 @@ struct SwDBManager::SwDBManager_Impl
     rtl::Reference<SwDataSourceRemovedListener> m_xDataSourceRemovedListener;
     osl::Mutex                    m_aAllEmailSendMutex;
     uno::Reference< mail::XMailMessage> m_xLastMessage;
+    SfxObjectShell               *m_pObjectShell;
 
     explicit SwDBManager_Impl(SwDBManager& rDBManager)
         : pMergeData( nullptr )
@@ -1090,6 +1091,9 @@ public:
     virtual void mailDelivered( ::rtl::Reference<MailDispatcher>,
                  uno::Reference< mail::XMailMessage> xMessage ) override
     {
+        lcl_emitEvent( SfxEventHintId::SwEventMailMergeSendMail,
+                       STR_SW_EVENT_MAIL_MERGE_SEND_MAIL,
+                       m_rDBManager.pImpl->m_pObjectShell );
         osl::MutexGuard aGuard( m_rDBManager.pImpl->m_aAllEmailSendMutex );
         if ( m_rDBManager.pImpl->m_xLastMessage == xMessage )
             m_rDBManager.pImpl->m_xLastMessage.clear();
@@ -1182,6 +1186,8 @@ bool SwDBManager::MergeMailFiles(SwWrtShell* pSourceShell,
         {
             // Reset internal mail accounting data
             pImpl->m_xLastMessage.clear();
+            pImpl->m_pObjectShell =
+                 pSourceShell->GetView().GetViewFrame()->GetObjectShell();
 
             xMailDispatcher.set( new MailDispatcher(rMergeDescriptor.xSmtpServer) );
             xMailListener = new MailDispatcherListener_Impl( *this );

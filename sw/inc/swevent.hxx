@@ -44,6 +44,7 @@
 #define     STR_SW_EVENT_FRM_KEYINPUT_NOALPHA 10
 #define     STR_SW_EVENT_FRM_RESIZE           11
 #define     STR_SW_EVENT_FRM_MOVE             12
+#define     STR_SW_EVENT_MAIL_MERGE_SEND_MAIL 13
 
 class SwFrameFormat;
 class SwFormatINetFormat;
