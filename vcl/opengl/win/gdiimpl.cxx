@@ -692,7 +692,7 @@ ControlCacheType gTextureCache(200);
 
 bool WinOpenGLSalGraphicsImpl::TryRenderCachedNativeControl(ControlCacheKey& rControlCacheKey, int nX, int nY)
 {
-    static bool gbCacheEnabled = !getenv("SAL_WITHOUT_WIDGET_CACHE");
+    static bool gbCacheEnabled = false;
 
     if (!gbCacheEnabled)
         return false;
