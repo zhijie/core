@@ -1458,7 +1458,7 @@ void WinLayout::DrawText(SalGraphics& rGraphics) const
 
 bool SimpleWinLayout::CacheGlyphs(SalGraphics& rGraphics) const
 {
-    static bool bDoGlyphCaching = (std::getenv("SAL_DISABLE_GLYPH_CACHING") == NULL);
+    static bool bDoGlyphCaching = false;
 
     if (!bDoGlyphCaching)
         return false;
@@ -2726,7 +2726,7 @@ bool UniscribeLayout::DrawTextImpl(HDC hDC,
 
 bool UniscribeLayout::CacheGlyphs(SalGraphics& rGraphics) const
 {
-    static bool bDoGlyphCaching = (std::getenv("SAL_DISABLE_GLYPH_CACHING") == NULL);
+    static bool bDoGlyphCaching = false;
 
     if (!bDoGlyphCaching)
         return false;
