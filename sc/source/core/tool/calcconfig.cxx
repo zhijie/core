@@ -94,12 +94,7 @@ void ScCalcConfig::setOpenCLConfigToDefault()
 
     // opcodes that are known to work well with the software interpreter
     static OpCodeSet pDefaultSwInterpreterSubsetOpCodes(new std::set<OpCode>({
-        ocAdd,
-        ocSub,
-        ocMul,
-        ocDiv,
-        ocSum,
-        ocProduct}));
+        }));
 
     // Note that these defaults better be kept in sync with those in
     // officecfg/registry/schema/org/openoffice/Office/Calc.xcs.
