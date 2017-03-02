@@ -798,7 +798,7 @@ bool OpenGLHelper::isDeviceBlacklisted()
 
 bool OpenGLHelper::supportsVCLOpenGL()
 {
-    static bool bDisableGL = true;
+    static bool bDisableGL = !!getenv("SAL_DISABLEGL");
     bool bBlacklisted = isDeviceBlacklisted();
 
     if (bDisableGL || bBlacklisted)
@@ -990,7 +990,7 @@ bool OpenGLHelper::isVCLOpenGLEnabled()
      */
 
     bSet = true;
-    bForceOpenGL = false;
+    bForceOpenGL = !!getenv("SAL_FORCEGL") || officecfg::Office::Common::VCL::ForceOpenGL::get();
 
     bool bRet = false;
     if (bForceOpenGL)
