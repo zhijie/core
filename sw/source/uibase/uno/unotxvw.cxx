@@ -1000,7 +1000,8 @@ sal_Bool SwXTextViewCursor::goLeft(sal_Int16 nCount, sal_Bool bExpand)
         if (!IsTextSelection())
             throw  uno::RuntimeException("no text selection", static_cast < cppu::OWeakObject * > ( this ) );
 
-        bRet = m_pView->GetWrtShell().Left( CRSR_SKIP_CHARS, bExpand, nCount, true );
+        for( sal_uInt16 i = 0; i < nCount; i++ )
+            bRet = m_pView->GetWrtShell().Left( CRSR_SKIP_CHARS, bExpand, 1, true );
     }
     else
         throw uno::RuntimeException();
@@ -1017,7 +1018,8 @@ sal_Bool SwXTextViewCursor::goRight(sal_Int16 nCount, sal_Bool bExpand)
         if (!IsTextSelection())
             throw  uno::RuntimeException("no text selection", static_cast < cppu::OWeakObject * > ( this ) );
 
-        bRet = m_pView->GetWrtShell().Right( CRSR_SKIP_CHARS, bExpand, nCount, true );
+        for( sal_uInt16 i = 0; i < nCount; i++ )
+            bRet = m_pView->GetWrtShell().Right( CRSR_SKIP_CHARS, bExpand, 1, true );
     }
     else
         throw uno::RuntimeException();
@@ -1614,7 +1616,8 @@ sal_Bool SwXTextViewCursor::goDown(sal_Int16 nCount, sal_Bool bExpand)
         if (!IsTextSelection())
             throw  uno::RuntimeException("no text selection", static_cast < cppu::OWeakObject * > ( this ) );
 
-        bRet = m_pView->GetWrtShell().Down( bExpand, nCount, true );
+        for( sal_uInt16 i = 0; i < nCount; i++ )
+            bRet = m_pView->GetWrtShell().Down( bExpand, true );
     }
     else
         throw uno::RuntimeException();
@@ -1631,7 +1634,8 @@ sal_Bool SwXTextViewCursor::goUp(sal_Int16 nCount, sal_Bool bExpand)
         if (!IsTextSelection())
             throw  uno::RuntimeException("no text selection", static_cast < cppu::OWeakObject * > ( this ) );
 
-        bRet = m_pView->GetWrtShell().Up( bExpand, nCount, true );
+        for( sal_uInt16 i = 0; i < nCount; i++ )
+            bRet = m_pView->GetWrtShell().Up( bExpand, true );
     }
     else
         throw uno::RuntimeException();
