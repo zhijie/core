@@ -85,7 +85,6 @@ void ScCalcConfig::setOpenCLConfigToDefault()
         ocCount,
         ocVar,
         ocNormDist,
-        ocVLookup,
         ocCorrel,
         ocCovar,
         ocPearson,
