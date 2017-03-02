@@ -43,7 +43,7 @@ public:
 
     double operator() ()
     {
-        static bool hasSSE2 = tools::cpuid::hasSSE2();
+        static bool hasSSE2 = false;
 
         double fSum = 0.0;
         size_t i = 0;
