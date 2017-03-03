@@ -203,6 +203,8 @@ double ScInterpreter::GetGammaDist( double fX, double fAlpha, double fLambda )
         return GetLowRegIGamma( fAlpha, fX / fLambda);
 }
 
+namespace {
+
 class NumericCellAccumulator
 {
     double mfFirst;
@@ -212,69 +214,38 @@ class NumericCellAccumulator
 public:
     NumericCellAccumulator() : mfFirst(0.0), mfRest(0.0), mnError(0) {}
 
-    void operator() (const sc::CellStoreType::value_type& rNode, size_t nOffset, size_t nDataSize)
+    void operator() (size_t, double fVal)
     {
-        switch (rNode.type)
+        if ( !mfFirst )
+            mfFirst = fVal;
+        else
+            mfRest += fVal;
+    }
+
+    void operator() (size_t, const ScFormulaCell* pCell)
+    {
+        if (mnError)
+            // Skip all the rest if we have an error.
+            return;
+
+        double fVal = 0.0;
+        sal_uInt16 nErr = 0;
+        ScFormulaCell& rCell = const_cast<ScFormulaCell&>(*pCell);
+        if (!rCell.GetErrorOrValue(nErr, fVal))
+            // The cell has neither error nor value.  Perhaps string result.
+            return;
+
+        if (nErr)
         {
-            case sc::element_type_numeric:
-            {
-                const double *p = &sc::numeric_block::at(*rNode.data, nOffset);
-                size_t i = 0;
-
-                // Store the first non-zero value in mfFirst (for some reason).
-                if (!mfFirst)
-                {
-                    for (i = 0; i < nDataSize; ++i)
-                    {
-                        if (!mfFirst)
-                            mfFirst = p[i];
-                        else
-                            break;
-                    }
-                }
-                p += i;
-                nDataSize -= i;
-                if (nDataSize == 0)
-                    return;
-
-                sc::ArraySumFunctor functor(p, nDataSize);
-
-                mfRest += functor();
-                break;
-            }
-
-            case sc::element_type_formula:
-            {
-                sc::formula_block::const_iterator it = sc::formula_block::begin(*rNode.data);
-                std::advance(it, nOffset);
-                sc::formula_block::const_iterator itEnd = it;
-                std::advance(itEnd, nDataSize);
-                for (; it != itEnd; ++it)
-                {
-                    double fVal = 0.0;
-                    sal_uInt16 nErr = 0;
-                    ScFormulaCell& rCell = const_cast<ScFormulaCell&>(*(*it));
-                    if (!rCell.GetErrorOrValue(nErr, fVal))
-                        // The cell has neither error nor value.  Perhaps string result.
-                        continue;
-
-                    if (nErr)
-                    {
-                        // Cell has error - skip all the rest
-                        mnError = nErr;
-                        return;
-                    }
-
-                    if ( !mfFirst )
-                        mfFirst = fVal;
-                    else
-                        mfRest += fVal;
-                }
-            }
-            break;
-            default:
-                ;
+            // Cell has error.
+            mnError = nErr;
+            return;
         }
+
+        if ( !mfFirst )
+            mfFirst = fVal;
+        else
+            mfRest += fVal;
     }
 
     sal_uInt16 getError() const { return mnError; }
@@ -376,7 +347,7 @@ public:
             return;
 
         NumericCellAccumulator aFunc;
-        maPos.miCellPos = sc::ParseBlock(maPos.miCellPos, mpCol->GetCellStore(), aFunc, nRow1, nRow2);
+        maPos.miCellPos = sc::ParseFormulaNumeric(maPos.miCellPos, mpCol->GetCellStore(), nRow1, nRow2, aFunc);
         mnError = aFunc.getError();
         if (mnError)
             return;
@@ -457,6 +428,8 @@ void IterateMatrix(
         default:
             ;
     }
+}
+
 }
 
 double ScInterpreter::IterateParameters( ScIterFunc eFunc, bool bTextAsZero )
