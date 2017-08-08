@@ -30,6 +30,7 @@
   xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
   xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
   xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
   xmlns:wvml="urn:schemas-microsoft-com:office:word"
   xmlns:x="urn:schemas-microsoft-com:office:excel"
   xmlns:xml="http://www.w3.org/XML/1998/namespace">
@@ -8388,9 +8389,18 @@
         <element name="cNvGrpSpPr">
           <ref name="CT_NonVisualGroupDrawingShapeProps"/>
         </element>
-        <element name="grpSpPr">
-          <ref name="CT_WordprocessingGroup"/>
-        </element>
+        <!-- oneOrMore -->
+        <choice>
+          <element name="wps:wsp">
+            <ref name="CT_WordprocessingShape"/>
+          </element>
+          <element name="grpSpPr">
+            <ref name="CT_WordprocessingGroup"/>
+          </element>
+          <element name="pic:pic">
+            <ref name="CT_Picture"/>
+          </element>
+        </choice>
       </define>
       <define name="wgp">
         <element name="wpg:wgp">
@@ -8442,6 +8452,8 @@
     <resource name="CT_WordprocessingGroup" resource="Shape">
       <element name="wpg:cNvGrpSpPr" tokenid="ooxml:CT_WordprocessingGroup_cNvGrpSpPr"/>
       <element name="wpg:grpSpPr" tokenid="ooxml:CT_WordprocessingGroup_grpSpPr"/>
+      <element name="wps:wsp" tokenid="ooxml:CT_WordprocessingGroup_wsp"/>
+      <element name="pic:pic" tokenid="ooxml:CT_WordprocessingGroup_pic"/>
     </resource>
     <resource name="wgp" resource="Shape">
       <element name="wpg:wgp" tokenid="ooxml:wpg_wgp"/>
