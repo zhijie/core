@@ -8373,11 +8373,14 @@
         </element>
       </define>
       <define name="CT_WordprocessingShape">
-        <element name="cNvSpPr">
+        <element name="wps:cNvSpPr">
           <ref name="CT_NonVisualDrawingShapeProps"/>
         </element>
-        <element name="spPr">
+        <element name="wps:spPr">
           <ref name="CT_ShapeProperties"/>
+        </element>
+        <element name="wps:txbx">
+          <ref name="CT_Textbox"/>
         </element>
       </define>
       <define name="wsp">
@@ -8394,7 +8397,7 @@
           <element name="wps:wsp">
             <ref name="CT_WordprocessingShape"/>
           </element>
-          <element name="grpSpPr">
+          <element name="wpg:grpSpPr">
             <ref name="CT_WordprocessingGroup"/>
           </element>
           <element name="pic:pic">
