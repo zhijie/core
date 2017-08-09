@@ -30,7 +30,6 @@
   xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
   xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
   xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
   xmlns:wvml="urn:schemas-microsoft-com:office:word"
   xmlns:x="urn:schemas-microsoft-com:office:excel"
   xmlns:xml="http://www.w3.org/XML/1998/namespace">
@@ -8373,14 +8372,11 @@
         </element>
       </define>
       <define name="CT_WordprocessingShape">
-        <element name="wps:cNvSpPr">
+        <element name="cNvSpPr">
           <ref name="CT_NonVisualDrawingShapeProps"/>
         </element>
-        <element name="wps:spPr">
+        <element name="spPr">
           <ref name="CT_ShapeProperties"/>
-        </element>
-        <element name="wps:txbx">
-          <ref name="CT_Textbox"/>
         </element>
       </define>
       <define name="wsp">
@@ -8392,18 +8388,9 @@
         <element name="cNvGrpSpPr">
           <ref name="CT_NonVisualGroupDrawingShapeProps"/>
         </element>
-        <!-- oneOrMore -->
-        <choice>
-          <element name="wps:wsp">
-            <ref name="CT_WordprocessingShape"/>
-          </element>
-          <element name="wpg:grpSpPr">
-            <ref name="CT_WordprocessingGroup"/>
-          </element>
-          <element name="pic:pic">
-            <ref name="CT_Picture"/>
-          </element>
-        </choice>
+        <element name="grpSpPr">
+          <ref name="CT_WordprocessingGroup"/>
+        </element>
       </define>
       <define name="wgp">
         <element name="wpg:wgp">
@@ -8455,8 +8442,6 @@
     <resource name="CT_WordprocessingGroup" resource="Shape">
       <element name="wpg:cNvGrpSpPr" tokenid="ooxml:CT_WordprocessingGroup_cNvGrpSpPr"/>
       <element name="wpg:grpSpPr" tokenid="ooxml:CT_WordprocessingGroup_grpSpPr"/>
-      <element name="wps:wsp" tokenid="ooxml:CT_WordprocessingGroup_wsp"/>
-      <element name="pic:pic" tokenid="ooxml:CT_WordprocessingGroup_pic"/>
     </resource>
     <resource name="wgp" resource="Shape">
       <element name="wpg:wgp" tokenid="ooxml:wpg_wgp"/>
