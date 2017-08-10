@@ -580,6 +580,11 @@ void Dialog::dispose()
     UITestLogger::getInstance().log("DialogClosed");
 
     SystemWindow::dispose();
+
+    if (comphelper::LibreOfficeKit::isActive() && mpDialogRenderable)
+    {
+        mpDialogRenderable->notifyDialog(maID, "close");
+    }
 }
 
 IMPL_LINK_NOARG(Dialog, ImplAsyncCloseHdl, void*, void)
