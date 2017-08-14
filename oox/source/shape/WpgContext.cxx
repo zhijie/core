@@ -35,7 +35,7 @@ oox::core::ContextHandlerRef WpgContext::onCreateContext(sal_Int32 nElementToken
     switch (getBaseToken(nElementToken))
     {
     case XML_wgp:
-        break;
+        return this;
     case XML_cNvGrpSpPr:
         break;
     case XML_grpSpPr:

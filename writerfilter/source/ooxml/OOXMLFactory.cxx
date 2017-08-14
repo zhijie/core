@@ -151,6 +151,7 @@ OOXMLFactory::createFastChildContext(OOXMLFastContextHandler * pHandler,
 void OOXMLFactory::characters(OOXMLFastContextHandler * pHandler,
                               const OUString & rString)
 {
+    SAL_DEBUG("characters gotten: " << rString);
     Id nDefine = pHandler->getDefine();
     OOXMLFactory_ns::Pointer_t pFactory = getFactoryForNamespace(nDefine);
 
