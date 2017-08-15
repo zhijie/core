@@ -909,7 +909,7 @@ void Dialog::LogicMouseButtonDownChild(const MouseEvent& rMouseEvent)
     FloatingWindow* pFirstFloat = pSVData->maWinData.mpFirstFloat;
     if (pFirstFloat && pFirstFloat->GetParentDialog() == this)
     {
-        ImplWindowFrameProc(pFirstFloat, SalEvent::ExternalMouseButtonDown, &rMouseEvent);
+        ImplWindowFrameProc(pFirstFloat->ImplGetBorderWindow(), SalEvent::ExternalMouseButtonDown, &rMouseEvent);
     }
 }
 
@@ -921,7 +921,7 @@ void Dialog::LogicMouseButtonUpChild(const MouseEvent& rMouseEvent)
     FloatingWindow* pFirstFloat = pSVData->maWinData.mpFirstFloat;
     if (pFirstFloat && pFirstFloat->GetParentDialog() == this)
     {
-        ImplWindowFrameProc(pFirstFloat, SalEvent::ExternalMouseButtonUp, &rMouseEvent);
+        ImplWindowFrameProc(pFirstFloat->ImplGetBorderWindow(), SalEvent::ExternalMouseButtonUp, &rMouseEvent);
     }
 }
 
@@ -933,7 +933,7 @@ void Dialog::LogicMouseMoveChild(const MouseEvent& rMouseEvent)
     FloatingWindow* pFirstFloat = pSVData->maWinData.mpFirstFloat;
     if (pFirstFloat && pFirstFloat->GetParentDialog() == this)
     {
-        ImplWindowFrameProc(pFirstFloat, SalEvent::ExternalMouseMove, &rMouseEvent);
+        ImplWindowFrameProc(pFirstFloat->ImplGetBorderWindow(), SalEvent::ExternalMouseMove, &rMouseEvent);
     }
 }
 
