@@ -437,7 +437,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkCheckButton" id="selection1">
+                                  <object class="GtkCheckButton" id="selection">
                                     <property name="label">
 </property>
                                     <property name="use_action_appearance">False</property>
