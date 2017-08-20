@@ -19,6 +19,7 @@
 
 #include <com/sun/star/embed/ElementModes.hpp>
 #include <com/sun/star/embed/XEncryptionProtectedSource2.hpp>
+#include <com/sun/star/embed/XEncryptionProtectedStorage.hpp>
 #include <com/sun/star/embed/XStorage.hpp>
 #include <com/sun/star/embed/XTransactedObject.hpp>
 #include <com/sun/star/embed/StorageFactory.hpp>
@@ -38,6 +39,8 @@
 #include <vector>
 
 #include <rtl/digest.h>
+#include <rtl/random.h>
+#include <osl/time.h>
 #include <osl/diagnose.h>
 
 #include <ucbhelper/content.hxx>
@@ -190,11 +193,21 @@ void OStorageHelper::SetCommonStorageEncryptionData(
             const uno::Reference< embed::XStorage >& xStorage,
             const uno::Sequence< beans::NamedValue >& aEncryptionData )
 {
-    uno::Reference< embed::XEncryptionProtectedSource2 > xEncrSet( xStorage, uno::UNO_QUERY );
+    uno::Reference< embed::XEncryptionProtectedStorage > xEncrSet( xStorage, uno::UNO_QUERY );
     if ( !xEncrSet.is() )
         throw io::IOException(); // TODO
 
-    xEncrSet->setEncryptionData( aEncryptionData );
+    if ( aEncryptionData.getLength() == 2 &&
+         aEncryptionData[0].Name == "GpgInfos" &&
+         aEncryptionData[1].Name == "EncryptionKey" )
+    {
+        xEncrSet->setGpgProperties(
+            aEncryptionData[0].Value.get< uno::Sequence< beans::NamedValue > >() );
+        xEncrSet->setEncryptionData(
+            aEncryptionData[1].Value.get< uno::Sequence< beans::NamedValue > >() );
+    }
+    else
+        xEncrSet->setEncryptionData( aEncryptionData );
 }
 
 
@@ -403,6 +416,47 @@ uno::Sequence< beans::NamedValue > OStorageHelper::CreatePackageEncryptionData( 
     return aEncryptionData;
 }
 
+uno::Sequence< beans::NamedValue > OStorageHelper::CreateGpgPackageEncryptionData( const OUString& aDocName )
+{
+    // generate session key
+    // --------------------
+
+    // Get a random number generator and seed it with current timestamp
+    TimeValue aTime;
+    osl_getSystemTime( &aTime );
+    rtlRandomPool aRandomPool = rtl_random_createPool();
+    rtl_random_addBytes(aRandomPool, &aTime, 8);
+
+    // get 16 random chars out of it
+    uno::Sequence < sal_Int8 > aVector(16);
+    rtl_random_getBytes( aRandomPool, aVector.getArray(), aVector.getLength() );
+
+    rtl_random_destroyPool(aRandomPool);
+
+    uno::Sequence< beans::NamedValue > aContainer(2);
+    uno::Sequence< beans::NamedValue > aGpgEncryptionData(3);
+    uno::Sequence< beans::NamedValue > aEncryptionData(1);
+
+    // TODO perhaps rename that one - bit misleading name ...
+    aGpgEncryptionData[0].Name = "KeyId";
+    aGpgEncryptionData[0].Value <<= OUString("jypAUdH0E9c=");
+    aGpgEncryptionData[0].Name = "KeyPacket";
+    aGpgEncryptionData[0].Value <<= OUString("LS0tLS1CRUdJTiBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQpWZXJzaW9uOiBHbnVQRyB2MQoKbFFJR0JGY3J4V3NCQkFDM1VBdko4Sk9PZWZZcVVYQVNzVHkrUHBjNHp3cU9YZlRZT2VTSk45V3RZWDVBdU9RNgpjdzZUTmhhbExwT1hLNlhLcUpoMklqSVh6cE1jUzEvQzg1QlNSK0V6dm51VXlhUCtZTXI4VzkyalZwNGo2OWJFCkR1Mnd2Nm5wTnFvRDhqY3NBMHJLeUFoVEg0c3lNL2RMcm1FOThEVXJibGRscE11R0VDUFg0L2tVSHdBUkFRQUIKL2djREFqbjhxQXJpdllBVVlLVGtxd1U5dTRseUdhUEFzOFZNc0ltWTRYUksxd1hOWHNmVC9vaG44QWh4OHJWWQp3eCtQUnFVemxrS2xiNFhkcjBzL0VKSWp0bmx4c3ZPYWlsY1VFaFpEL0VkaHM5WEI2MUl0UFdSWm1OMW1lbGt0Ck1lZDBLL1hCdzVxejJUemZGcFBaaGIxdjZMY0IwRmZnSjY2K1JBWW9EZXVmRGdGNllNcmhrc3kvVnNwM1MrYTYKNE4rclBuNWlkcTVPOU5lb09MVCt5RGRBVTlFeFAxVnd1SFY5V01UT3JvcUtKZUYyT1lvSW05V2dzTGd6ZEU1OQpuSXFVNC9FcWQxYUpCbTgrRTBtbnhFd0VuS2JJNEtOa0tzdDAwRXFmTmIzVXA4RlFJV3hVRnlaclplL2JmeTNCCnVrM2IzZ0xRUlRqUHJvR0JNS3B2UWQvd2xVVTVESS92OUdHMWtpT2duV1dnZGFWWjBFazdzTWhaY1R3aWpHNFYKaUVaOEE1bVZRWXBMTlFwY29jRGdoM0lyRzBkSFVkNVorRUVaQkRSbElaRklKVnVyak9XempzM2lsd3ZhYWpmUwppSFdiZUw4Nmh2bFVWV2hCTCtqMUhsTDRZWjg2SmJNc0kzQ0ZmaEJXT1pqbEFMMTRvc1NHNUVLMEhGUmxjM1FnClZYTmxjaUE4ZEdWemRFQmxlR0Z0Y0d4bExtTnZiVDZJdmdRVEFRSUFLQVVDVnl2RmF3SWJBd1VKQUFGUmdBWUwKQ1FnSEF3SUdGUWdDQ1FvTEJCWUNBd0VDSGdFQ0Y0QUFDZ2tRanlwQVVkSDBFOWVwTGdQOUcxLytPU0pkVWVzKwp3ZDMvQmdwbUxqdWRsWEVXQVZjZnh2UlpHbmVjY2VwOXl5ay90WHRSc3lnNjMyTnV5REFlUk5EWmRDVEFHNGNUCmQxY1crWnJsQzM5T1MrOFUrQUFVUi82QlVic3JXT0RrMTVzN2VOOUs3NmE2SU9Lb2RKRHd1QkVkZDJQcUdCd3YKQ1Qwam5pT0pXUFVZdjJzOHBPMGFndzdVV0dNUzdmU2RBZ1lFVnl2RmF3RUVBTU04aVZnMERNbEpPSlQwbmhFQgp2dFR3ZUpIeFB2akpnTHNmUlFsdkNlQWs1U2taV1pNTllxRnRxbTl6NmJqMkJobnlYU0tFMENBem4xTXhsc1o2CjlJWkJPQ3ZURlRRY1pZQ3V2N1UwY3prU0xzMlBvN1VMeXJKMFNpSS9OS2NSdVhIR3ZDSzdWUHdpK2RROTNITUEKWUxOZ2FyblJ1cVUzbHd1NU1yaHROZVpOQUJFQkFBSCtCd01DT2Z5b0N1SzlnQlJnZm1XUmlRc1VzU1BkRTlDRwptaGpRcDdKOWRNQTIrWDhsK0NnaU8yU2J3SG5idmwrWEtLaElzaGNRSWp2UitMdHZnRFFoZkN6TlJwNTBnRlRUCkZNZER6RlVJakVhYVRleDh2cUFkV1lQcjl5SitVSGdUVWhTdVB5eG41UHYrVmR1MmhTai9pVzJpeEVUQ2J5ZkUKOWt6R2FsMGJaQWRiWFZEcHFoam1rbHAzVXlkQm1xRzVoMmJ4cS9ZeFRKYmZ4S01RQm03Ukw4MDBHbjYwUWhsUwpDTkNmWVFRa290cmlnMzNzWHl4Q1RSZDQ3Ymk1Zmlta2JoOVllcnU5Q29sUDVqQUQwSm43NjBxYk5MZjcveFNCCnJRRENzL0k4R1lYMmtkQllrOUxpYm03Y1FhNjRrRDVaMzZtdGdNNERGQjEwbUMxaDVRZVpuRUJtczdKei9PUTMKdWtUWU1JYTBUT1VnY25jTG40K0pKckZQTkxYak9rNVdid0FzN0hYKzEyVitXb05oSmhVdlhMYXFHTTcrUWtUUwplMERJazVCZFZxUlp4VURJRDM0OEhQR0Ntc21VUlRGRDcxbEZKMy91Zkg3a2FHTmVzUnBnZFplSmFGUlFybS93CkpLQ1c2SXJJbEt1cWNpNDRMdkpBYTRpbEJCZ0JBZ0FQQlFKWEs4VnJBaHNNQlFrQUFWR0FBQW9KRUk4cVFGSFIKOUJQWHdVVUQvaTh5eStTOVpjdWhWcUxuTmNXNkxzSHhUaHE2MXVMRysxcTg3aFBYVGxLMmt3M0M5QTI2OUlqOApBUkhRaGpBSUFSSkM3MHNCaWVKK0xMMlZWa1ZYakVnYnpqdlNHTUE3dkRXRlBJOHovdHVxSnBKeW1zR0tEbFJ4CkptSVBkRFFOVlJtZGV6cnd1WlNlaVJabE43SjNNNnQvenJCNzFHVU9CakhLS2Jua2pKdUQKPXpyZG4KLS0tLS1FTkQgUEdQIFBSSVZBVEUgS0VZIEJMT0NLLS0tLS0K");
+    aGpgEncryptionData[0].Name = "CipherValue";
+    aGpgEncryptionData[0].Value <<= OUString("FAm4BDOfQRJ66/ecfIByCck3JxaKYYEWwms7z+Vsb+iqPWyPGdbgJNkRBAWH4V92JvMoc/QcD/1+z+iRvR6PMGdDHAyprIh5uGHs7mo+dqabJU0qOhHb16InW2XO1GqhmjzMDUw+q4ot28jpfIVSMKPlf6b8vnNUICMJjXn+aB8=");
+
+    aEncryptionData[0].Name = PACKAGE_ENCRYPTIONDATA_SHA256UTF8;
+    aEncryptionData[0].Value <<= aVector;
+
+    aContainer[0].Name = "GpgInfos";
+    aContainer[0].Value = makeAny(aGpgEncryptionData);
+    aContainer[1].Name = "EncryptionKey";
+    aContainer[1].Value = makeAny(aEncryptionData);
+
+    (void)aDocName;
+
+    return aContainer;
+}
 
 bool OStorageHelper::IsValidZipEntryFileName( const OUString& aName, bool bSlashAllowed )
 {
