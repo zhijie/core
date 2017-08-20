@@ -297,6 +297,7 @@ ManifestExport::ManifestExport( uno::Reference< xml::sax::XDocumentHandler > con
                                          "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p" );
             xHandler->startElement( sEncryptionMethodElement, xNewAttrList );
             xHandler->ignorableWhitespace ( sWhiteSpace );
+            xHandler->endElement( sEncryptionMethodElement );
 
             xHandler->startElement( sKeyInfoElement, nullptr );
             xHandler->ignorableWhitespace ( sWhiteSpace );
@@ -332,6 +333,9 @@ ManifestExport::ManifestExport( uno::Reference< xml::sax::XDocumentHandler > con
             ::sax::Converter::encodeBase64(aBuffer, aSequence);
             xHandler->characters( aBuffer.makeStringAndClear() );
             xHandler->endElement( sCipherValueElement );
+            xHandler->ignorableWhitespace ( sWhiteSpace );
+
+            xHandler->endElement( sCipherDataElement );
             xHandler->ignorableWhitespace ( sWhiteSpace );
 
             xHandler->endElement( sEncryptedKeyElement );
