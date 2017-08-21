@@ -35,6 +35,8 @@
 #include <com/sun/star/xml/crypto/XDigestContext.hpp>
 #include <com/sun/star/xml/crypto/XDigestContextSupplier.hpp>
 #include <com/sun/star/xml/crypto/DigestID.hpp>
+#include "com/sun/star/security/DocumentDigitalSignatures.hpp"
+#include "com/sun/star/security/XCertificate.hpp"
 
 #include <vector>
 
@@ -42,6 +44,7 @@
 #include <rtl/random.h>
 #include <osl/time.h>
 #include <osl/diagnose.h>
+#include <sax/tools/converter.hxx>
 
 #include <ucbhelper/content.hxx>
 
@@ -49,6 +52,11 @@
 #include <comphelper/processfactory.hxx>
 #include <comphelper/documentconstants.hxx>
 #include <comphelper/storagehelper.hxx>
+
+#include <gpgme.h>
+#include <context.h>
+#include <key.h>
+#include <data.h>
 
 using namespace ::com::sun::star;
 
@@ -437,13 +445,58 @@ uno::Sequence< beans::NamedValue > OStorageHelper::CreateGpgPackageEncryptionDat
     uno::Sequence< beans::NamedValue > aGpgEncryptionData(3);
     uno::Sequence< beans::NamedValue > aEncryptionData(1);
 
+    // TODO fire certificate chooser dialog
+    uno::Reference< security::XDocumentDigitalSignatures > xSigner(
+        security::DocumentDigitalSignatures::createWithVersion(
+            comphelper::getProcessComponentContext(), "1.2" ) );
+
+    // The use may provide a description while choosing a certificate.
+    OUString aDescription;
+    uno::Reference< security::XCertificate > xSignCertificate=
+        xSigner->chooseCertificate(aDescription);
+
+    uno::Sequence < sal_Int8 > aKeyID;
+    if (xSignCertificate.is())
+    {
+        aKeyID = xSignCertificate->getSHA1Thumbprint();
+    }
+
+    std::unique_ptr<GpgME::Context> ctx;
+    GpgME::Error err = GpgME::checkEngine(GpgME::OpenPGP);
+    if (err)
+        throw RuntimeException("The GpgME library failed to initialize for the OpenPGP protocol.");
+
+    ctx.reset( GpgME::Context::createForProtocol(GpgME::OpenPGP) );
+    if (ctx == nullptr)
+        throw RuntimeException("The GpgME library failed to initialize for the OpenPGP protocol.");
+    ctx->setArmor(false);
+    ctx->setKeyListMode(GPGME_KEYLIST_MODE_LOCAL);
+    std::vector<GpgME::Key> keys;
+    keys.push_back(
+        ctx->key(
+            "0x909BE2575CEDBEA3", err, true));
+
+    // good, ctx is setup now, let's sign the lot
+    GpgME::Data data_in(
+        reinterpret_cast<char*>(xmlSecBufferGetData(pDsigCtx->transformCtx.result)),
+        xmlSecBufferGetSize(pDsigCtx->transformCtx.result), false);
+    GpgME::Data data_out;
+
+    ctx->encrypt(keys, plain, cipher, GpgME::Context::NoCompress);
+
+    SAL_INFO("xmlsecurity.xmlsec.gpg", "Generating signature for: " << xmlSecBufferGetData(pDsigCtx->transformCtx.result));
+
     // TODO perhaps rename that one - bit misleading name ...
     aGpgEncryptionData[0].Name = "KeyId";
-    aGpgEncryptionData[0].Value <<= OUString("jypAUdH0E9c=");
-    aGpgEncryptionData[0].Name = "KeyPacket";
-    aGpgEncryptionData[0].Value <<= OUString("LS0tLS1CRUdJTiBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQpWZXJzaW9uOiBHbnVQRyB2MQoKbFFJR0JGY3J4V3NCQkFDM1VBdko4Sk9PZWZZcVVYQVNzVHkrUHBjNHp3cU9YZlRZT2VTSk45V3RZWDVBdU9RNgpjdzZUTmhhbExwT1hLNlhLcUpoMklqSVh6cE1jUzEvQzg1QlNSK0V6dm51VXlhUCtZTXI4VzkyalZwNGo2OWJFCkR1Mnd2Nm5wTnFvRDhqY3NBMHJLeUFoVEg0c3lNL2RMcm1FOThEVXJibGRscE11R0VDUFg0L2tVSHdBUkFRQUIKL2djREFqbjhxQXJpdllBVVlLVGtxd1U5dTRseUdhUEFzOFZNc0ltWTRYUksxd1hOWHNmVC9vaG44QWh4OHJWWQp3eCtQUnFVemxrS2xiNFhkcjBzL0VKSWp0bmx4c3ZPYWlsY1VFaFpEL0VkaHM5WEI2MUl0UFdSWm1OMW1lbGt0Ck1lZDBLL1hCdzVxejJUemZGcFBaaGIxdjZMY0IwRmZnSjY2K1JBWW9EZXVmRGdGNllNcmhrc3kvVnNwM1MrYTYKNE4rclBuNWlkcTVPOU5lb09MVCt5RGRBVTlFeFAxVnd1SFY5V01UT3JvcUtKZUYyT1lvSW05V2dzTGd6ZEU1OQpuSXFVNC9FcWQxYUpCbTgrRTBtbnhFd0VuS2JJNEtOa0tzdDAwRXFmTmIzVXA4RlFJV3hVRnlaclplL2JmeTNCCnVrM2IzZ0xRUlRqUHJvR0JNS3B2UWQvd2xVVTVESS92OUdHMWtpT2duV1dnZGFWWjBFazdzTWhaY1R3aWpHNFYKaUVaOEE1bVZRWXBMTlFwY29jRGdoM0lyRzBkSFVkNVorRUVaQkRSbElaRklKVnVyak9XempzM2lsd3ZhYWpmUwppSFdiZUw4Nmh2bFVWV2hCTCtqMUhsTDRZWjg2SmJNc0kzQ0ZmaEJXT1pqbEFMMTRvc1NHNUVLMEhGUmxjM1FnClZYTmxjaUE4ZEdWemRFQmxlR0Z0Y0d4bExtTnZiVDZJdmdRVEFRSUFLQVVDVnl2RmF3SWJBd1VKQUFGUmdBWUwKQ1FnSEF3SUdGUWdDQ1FvTEJCWUNBd0VDSGdFQ0Y0QUFDZ2tRanlwQVVkSDBFOWVwTGdQOUcxLytPU0pkVWVzKwp3ZDMvQmdwbUxqdWRsWEVXQVZjZnh2UlpHbmVjY2VwOXl5ay90WHRSc3lnNjMyTnV5REFlUk5EWmRDVEFHNGNUCmQxY1crWnJsQzM5T1MrOFUrQUFVUi82QlVic3JXT0RrMTVzN2VOOUs3NmE2SU9Lb2RKRHd1QkVkZDJQcUdCd3YKQ1Qwam5pT0pXUFVZdjJzOHBPMGFndzdVV0dNUzdmU2RBZ1lFVnl2RmF3RUVBTU04aVZnMERNbEpPSlQwbmhFQgp2dFR3ZUpIeFB2akpnTHNmUlFsdkNlQWs1U2taV1pNTllxRnRxbTl6NmJqMkJobnlYU0tFMENBem4xTXhsc1o2CjlJWkJPQ3ZURlRRY1pZQ3V2N1UwY3prU0xzMlBvN1VMeXJKMFNpSS9OS2NSdVhIR3ZDSzdWUHdpK2RROTNITUEKWUxOZ2FyblJ1cVUzbHd1NU1yaHROZVpOQUJFQkFBSCtCd01DT2Z5b0N1SzlnQlJnZm1XUmlRc1VzU1BkRTlDRwptaGpRcDdKOWRNQTIrWDhsK0NnaU8yU2J3SG5idmwrWEtLaElzaGNRSWp2UitMdHZnRFFoZkN6TlJwNTBnRlRUCkZNZER6RlVJakVhYVRleDh2cUFkV1lQcjl5SitVSGdUVWhTdVB5eG41UHYrVmR1MmhTai9pVzJpeEVUQ2J5ZkUKOWt6R2FsMGJaQWRiWFZEcHFoam1rbHAzVXlkQm1xRzVoMmJ4cS9ZeFRKYmZ4S01RQm03Ukw4MDBHbjYwUWhsUwpDTkNmWVFRa290cmlnMzNzWHl4Q1RSZDQ3Ymk1Zmlta2JoOVllcnU5Q29sUDVqQUQwSm43NjBxYk5MZjcveFNCCnJRRENzL0k4R1lYMmtkQllrOUxpYm03Y1FhNjRrRDVaMzZtdGdNNERGQjEwbUMxaDVRZVpuRUJtczdKei9PUTMKdWtUWU1JYTBUT1VnY25jTG40K0pKckZQTkxYak9rNVdid0FzN0hYKzEyVitXb05oSmhVdlhMYXFHTTcrUWtUUwplMERJazVCZFZxUlp4VURJRDM0OEhQR0Ntc21VUlRGRDcxbEZKMy91Zkg3a2FHTmVzUnBnZFplSmFGUlFybS93CkpLQ1c2SXJJbEt1cWNpNDRMdkpBYTRpbEJCZ0JBZ0FQQlFKWEs4VnJBaHNNQlFrQUFWR0FBQW9KRUk4cVFGSFIKOUJQWHdVVUQvaTh5eStTOVpjdWhWcUxuTmNXNkxzSHhUaHE2MXVMRysxcTg3aFBYVGxLMmt3M0M5QTI2OUlqOApBUkhRaGpBSUFSSkM3MHNCaWVKK0xMMlZWa1ZYakVnYnpqdlNHTUE3dkRXRlBJOHovdHVxSnBKeW1zR0tEbFJ4CkptSVBkRFFOVlJtZGV6cnd1WlNlaVJabE43SjNNNnQvenJCNzFHVU9CakhLS2Jua2pKdUQKPXpyZG4KLS0tLS1FTkQgUEdQIFBSSVZBVEUgS0VZIEJMT0NLLS0tLS0K");
-    aGpgEncryptionData[0].Name = "CipherValue";
-    aGpgEncryptionData[0].Value <<= OUString("FAm4BDOfQRJ66/ecfIByCck3JxaKYYEWwms7z+Vsb+iqPWyPGdbgJNkRBAWH4V92JvMoc/QcD/1+z+iRvR6PMGdDHAyprIh5uGHs7mo+dqabJU0qOhHb16InW2XO1GqhmjzMDUw+q4ot28jpfIVSMKPlf6b8vnNUICMJjXn+aB8=");
+    aGpgEncryptionData[0].Value <<= aKeyID;
+    aGpgEncryptionData[1].Name = "KeyPacket";
+    OUString packet("LS0tLS1CRUdJTiBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQpWZXJzaW9uOiBHbnVQRyB2MQoKbFFJR0JGY3J4V3NCQkFDM1VBdko4Sk9PZWZZcVVYQVNzVHkrUHBjNHp3cU9YZlRZT2VTSk45V3RZWDVBdU9RNgpjdzZUTmhhbExwT1hLNlhLcUpoMklqSVh6cE1jUzEvQzg1QlNSK0V6dm51VXlhUCtZTXI4VzkyalZwNGo2OWJFCkR1Mnd2Nm5wTnFvRDhqY3NBMHJLeUFoVEg0c3lNL2RMcm1FOThEVXJibGRscE11R0VDUFg0L2tVSHdBUkFRQUIKL2djREFqbjhxQXJpdllBVVlLVGtxd1U5dTRseUdhUEFzOFZNc0ltWTRYUksxd1hOWHNmVC9vaG44QWh4OHJWWQp3eCtQUnFVemxrS2xiNFhkcjBzL0VKSWp0bmx4c3ZPYWlsY1VFaFpEL0VkaHM5WEI2MUl0UFdSWm1OMW1lbGt0Ck1lZDBLL1hCdzVxejJUemZGcFBaaGIxdjZMY0IwRmZnSjY2K1JBWW9EZXVmRGdGNllNcmhrc3kvVnNwM1MrYTYKNE4rclBuNWlkcTVPOU5lb09MVCt5RGRBVTlFeFAxVnd1SFY5V01UT3JvcUtKZUYyT1lvSW05V2dzTGd6ZEU1OQpuSXFVNC9FcWQxYUpCbTgrRTBtbnhFd0VuS2JJNEtOa0tzdDAwRXFmTmIzVXA4RlFJV3hVRnlaclplL2JmeTNCCnVrM2IzZ0xRUlRqUHJvR0JNS3B2UWQvd2xVVTVESS92OUdHMWtpT2duV1dnZGFWWjBFazdzTWhaY1R3aWpHNFYKaUVaOEE1bVZRWXBMTlFwY29jRGdoM0lyRzBkSFVkNVorRUVaQkRSbElaRklKVnVyak9XempzM2lsd3ZhYWpmUwppSFdiZUw4Nmh2bFVWV2hCTCtqMUhsTDRZWjg2SmJNc0kzQ0ZmaEJXT1pqbEFMMTRvc1NHNUVLMEhGUmxjM1FnClZYTmxjaUE4ZEdWemRFQmxlR0Z0Y0d4bExtTnZiVDZJdmdRVEFRSUFLQVVDVnl2RmF3SWJBd1VKQUFGUmdBWUwKQ1FnSEF3SUdGUWdDQ1FvTEJCWUNBd0VDSGdFQ0Y0QUFDZ2tRanlwQVVkSDBFOWVwTGdQOUcxLytPU0pkVWVzKwp3ZDMvQmdwbUxqdWRsWEVXQVZjZnh2UlpHbmVjY2VwOXl5ay90WHRSc3lnNjMyTnV5REFlUk5EWmRDVEFHNGNUCmQxY1crWnJsQzM5T1MrOFUrQUFVUi82QlVic3JXT0RrMTVzN2VOOUs3NmE2SU9Lb2RKRHd1QkVkZDJQcUdCd3YKQ1Qwam5pT0pXUFVZdjJzOHBPMGFndzdVV0dNUzdmU2RBZ1lFVnl2RmF3RUVBTU04aVZnMERNbEpPSlQwbmhFQgp2dFR3ZUpIeFB2akpnTHNmUlFsdkNlQWs1U2taV1pNTllxRnRxbTl6NmJqMkJobnlYU0tFMENBem4xTXhsc1o2CjlJWkJPQ3ZURlRRY1pZQ3V2N1UwY3prU0xzMlBvN1VMeXJKMFNpSS9OS2NSdVhIR3ZDSzdWUHdpK2RROTNITUEKWUxOZ2FyblJ1cVUzbHd1NU1yaHROZVpOQUJFQkFBSCtCd01DT2Z5b0N1SzlnQlJnZm1XUmlRc1VzU1BkRTlDRwptaGpRcDdKOWRNQTIrWDhsK0NnaU8yU2J3SG5idmwrWEtLaElzaGNRSWp2UitMdHZnRFFoZkN6TlJwNTBnRlRUCkZNZER6RlVJakVhYVRleDh2cUFkV1lQcjl5SitVSGdUVWhTdVB5eG41UHYrVmR1MmhTai9pVzJpeEVUQ2J5ZkUKOWt6R2FsMGJaQWRiWFZEcHFoam1rbHAzVXlkQm1xRzVoMmJ4cS9ZeFRKYmZ4S01RQm03Ukw4MDBHbjYwUWhsUwpDTkNmWVFRa290cmlnMzNzWHl4Q1RSZDQ3Ymk1Zmlta2JoOVllcnU5Q29sUDVqQUQwSm43NjBxYk5MZjcveFNCCnJRRENzL0k4R1lYMmtkQllrOUxpYm03Y1FhNjRrRDVaMzZtdGdNNERGQjEwbUMxaDVRZVpuRUJtczdKei9PUTMKdWtUWU1JYTBUT1VnY25jTG40K0pKckZQTkxYak9rNVdid0FzN0hYKzEyVitXb05oSmhVdlhMYXFHTTcrUWtUUwplMERJazVCZFZxUlp4VURJRDM0OEhQR0Ntc21VUlRGRDcxbEZKMy91Zkg3a2FHTmVzUnBnZFplSmFGUlFybS93CkpLQ1c2SXJJbEt1cWNpNDRMdkpBYTRpbEJCZ0JBZ0FQQlFKWEs4VnJBaHNNQlFrQUFWR0FBQW9KRUk4cVFGSFIKOUJQWHdVVUQvaTh5eStTOVpjdWhWcUxuTmNXNkxzSHhUaHE2MXVMRysxcTg3aFBYVGxLMmt3M0M5QTI2OUlqOApBUkhRaGpBSUFSSkM3MHNCaWVKK0xMMlZWa1ZYakVnYnpqdlNHTUE3dkRXRlBJOHovdHVxSnBKeW1zR0tEbFJ4CkptSVBkRFFOVlJtZGV6cnd1WlNlaVJabE43SjNNNnQvenJCNzFHVU9CakhLS2Jua2pKdUQKPXpyZG4KLS0tLS1FTkQgUEdQIFBSSVZBVEUgS0VZIEJMT0NLLS0tLS0K");
+    ::sax::Converter::decodeBase64(aKeyID, packet);
+    aGpgEncryptionData[1].Value <<= aKeyID;
+    aGpgEncryptionData[2].Name = "CipherValue";
+    OUString cipher("FAm4BDOfQRJ66/ecfIByCck3JxaKYYEWwms7z+Vsb+iqPWyPGdbgJNkRBAWH4V92JvMoc/QcD/1+z+iRvR6PMGdDHAyprIh5uGHs7mo+dqabJU0qOhHb16InW2XO1GqhmjzMDUw+q4ot28jpfIVSMKPlf6b8vnNUICMJjXn+aB8=");
+    ::sax::Converter::decodeBase64(aKeyID, cipher);
+    aGpgEncryptionData[2].Value <<= aKeyID;
 
     aEncryptionData[0].Name = PACKAGE_ENCRYPTIONDATA_SHA256UTF8;
     aEncryptionData[0].Value <<= aVector;
