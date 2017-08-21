@@ -70,8 +70,8 @@ Sequence< Reference < XCertificate > > SecurityEnvironmentGpg::getPersonalCertif
     std::list< GpgME::Key > keyList;
     std::list< CertificateImpl* > certsList;
 
-    m_ctx->setKeyListMode(GPGME_KEYLIST_MODE_LOCAL);
-    GpgME::Error err = m_ctx->startKeyListing("", true);
+    m_ctx->addKeyListMode(GPGME_KEYLIST_MODE_LOCAL);
+    GpgME::Error err = m_ctx->startKeyListing("", false);
     while (!err) {
         GpgME::Key k = m_ctx->nextKey(err);
         if (err)
@@ -109,7 +109,7 @@ Reference< XCertificate > SecurityEnvironmentGpg::getCertificate( const OUString
     if(xmlSecBase64Decode(strKeyId, const_cast<xmlSecByte*>(strKeyId), xmlStrlen(strKeyId)) < 0)
         throw RuntimeException("Base64 decode failed");
 
-    m_ctx->setKeyListMode(GPGME_KEYLIST_MODE_LOCAL);
+    m_ctx->addKeyListMode(GPGME_KEYLIST_MODE_LOCAL);
     GpgME::Error err = m_ctx->startKeyListing("", false);
     while (!err) {
         GpgME::Key k = m_ctx->nextKey(err);
