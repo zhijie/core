@@ -495,12 +495,6 @@ public:
     */
     static void                 EndYield();
 
-    /** Acquire SolarMutex after it has been temporarily dropped completely.
-
-        This will Reschedule() on WNT and just acquire on other platforms.
-    */
-    static void                 ReAcquireSolarMutex(sal_uLong nReleased);
-
     /** @brief Get the Solar Mutex for this thread.
 
      Get the Solar Mutex that prevents other threads from accessing VCL
@@ -1491,7 +1485,7 @@ public:
     ~SolarMutexReleaser()
     {
         if ( mnReleased )
-            Application::ReAcquireSolarMutex( mnReleased );
+            Application::AcquireSolarMutex( mnReleased );
     }
 };
 
