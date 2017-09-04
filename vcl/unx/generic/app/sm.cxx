@@ -293,10 +293,9 @@ IMPL_STATIC_LINK( SessionManagerClient, SaveYourselfHdl, void*, pStateVal, void 
           task of the quick-starter)
         */
         *pSmRestartHint = SmRestartNever;
-        const std::list< SalFrame* >& rFrames = vcl_sal::getSalDisplay(GetGenericData())->getFrames();
-        for( std::list< SalFrame* >::const_iterator it = rFrames.begin(); it != rFrames.end(); ++it )
+        for (auto pSalFrame : vcl_sal::getSalDisplay(GetGenericData())->getFrames() )
         {
-            vcl::Window *pWindow = (*it)->GetWindow();
+            vcl::Window *pWindow = pSalFrame->GetWindow();
             if (pWindow && pWindow->IsVisible())
             {
                 *pSmRestartHint = SmRestartIfRunning;
@@ -394,11 +393,10 @@ IMPL_STATIC_LINK_NOARG( SessionManagerClient, ShutDownHdl, void*, void )
         m_pSession->CallCallback( &aEvent );
     }
 
-    const std::list< SalFrame* >& rFrames = vcl_sal::getSalDisplay(GetGenericData())->getFrames();
-
-    SAL_INFO("vcl.sm.debug", "  rFrames.empty() = " << (rFrames.empty() ? "true" : "false"));
-    if( !rFrames.empty() )
-        rFrames.front()->CallCallback( SalEvent::Shutdown, nullptr );
+    auto pFirstFrame = vcl_sal::getSalDisplay(GetGenericData())->firstFrame();
+    SAL_INFO("vcl.sm.debug", "  rFrames.empty() = " << (pFirstFrame ? "true" : "false"));
+    if( pFirstFrame )
+        pFirstFrame->CallCallback( SalEvent::Shutdown, nullptr );
 }
 
 void SessionManagerClient::DieProc(
